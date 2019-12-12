@@ -1,0 +1,9 @@
+*.sublime-*
+assets/
+docs/
+examples/
+showcase/
+src/
+test/
+index.js
+node_modules/
