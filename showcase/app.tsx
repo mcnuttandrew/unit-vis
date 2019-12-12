@@ -1,15 +1,8 @@
 import ReactDOM from 'react-dom';
 import React from 'react';
-
-function App() {
-  return (
-    <div>
-      <h1>Unit Vis test</h1>
-    </div>
-  );
-}
+import Root from './components/root';
 
 const el = document.createElement('div');
 document.body.appendChild(el);
 
-ReactDOM.render(React.createElement(App), el);
+ReactDOM.render(<Root />, el);
