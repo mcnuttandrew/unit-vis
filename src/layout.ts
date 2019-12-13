@@ -45,7 +45,7 @@ export function applyLayout(containerList: Container[], layout: Layout) {
       oldSizeSharingAncestor = newSizeSharingAncestor;
     }
 
-    var newContainers = makeContainers(container, layout);
+    var newContainers = makeContainers(container, layout) || [];
 
     if (newContainers.length > 0) {
       calcVisualSpace(container, newContainers, layout);
@@ -69,8 +69,8 @@ function getSharingAncestorContainer(
     return container;
   }
 
-  if (layout[item].isShared) {
-    if (container.parent !== 'RootContainer') {
+  if (layout[item] && layout[item].isShared) {
+    if (container && container.parent !== 'RootContainer') {
       const parentContainer: any = container.parent;
       const parentLayout: any = container.parent;
       return getSharingAncestorContainer(
@@ -93,7 +93,7 @@ function makeContainers(container: Container, layout: Layout) {
   var sharingDomain = getSharingDomain(sharingAncestorContainer);
   var childContainers;
 
-  switch (layout.subgroup.type) {
+  switch (layout.subgroup && layout.subgroup.type) {
     case 'groupby':
       childContainers = makeContainersForCategoricalVar(
         sharingDomain,
@@ -1011,7 +1011,7 @@ function getMinAmongContainers(
   }
 }
 
-function getParents(containers: Container[]) {
+function getParents(containers: Container[] = []) {
   var mySet = new Set();
   containers.forEach(d => mySet.add(d.parent));
   return Array.from(mySet);

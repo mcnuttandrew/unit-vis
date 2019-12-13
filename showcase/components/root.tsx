@@ -34,7 +34,7 @@ const SPECS = [
   'size_uniform_notShared.json',
   'violin.json',
   'size_uniform_shared.json',
-];
+].sort();
 
 export default function Root() {
   const [selectedSpec, changeSpec] = useState('default1.json');

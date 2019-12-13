@@ -31,7 +31,7 @@ export function applyDefault(spec: any) {
 
     applyDefaultObj(layout, defaultLayout);
 
-    if (layout.subgroup.type === 'flatten') {
+    if (layout.subgroup && layout.subgroup.type === 'flatten') {
       layout.margin = {
         top: 0,
         left: 0,
