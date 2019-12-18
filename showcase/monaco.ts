@@ -21,13 +21,13 @@ function addMarkdownProps(value: any) {
 }
 
 // @ts-ignore
-const unitVisSchema = require('../assets/unit-vis-schema.json');
+const unitVisSchema = require('./assets/unit-vis-schema.json');
 addMarkdownProps(unitVisSchema);
 
 const schemas = [
   {
     schema: unitVisSchema,
-    uri: 'https://vega.github.io/schema/vega/v5.json',
+    uri: './assets/unit-vis-schema.json',
   },
   // {
   //   // @ts-ignore
