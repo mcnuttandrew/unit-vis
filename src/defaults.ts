@@ -25,8 +25,8 @@ export function applyDefault(spec: any) {
   spec.padding = spec.padding ? spec.padding : defaultPadding;
   spec.width = spec.width ? spec.width : defaultWidth;
   spec.height = spec.height ? spec.height : defaultHeight;
-
-  for (var i = 0; i < spec.layouts.length; i++) {
+  const numLayouts = (spec.layouts || []).length;
+  for (var i = 0; i < numLayouts; i++) {
     var layout = spec.layouts[i];
 
     applyDefaultObj(layout, defaultLayout);
@@ -47,7 +47,7 @@ export function applyDefault(spec: any) {
     }
   }
 
-  if (spec.layouts.length > 1) {
+  if (numLayouts > 1) {
     var firstLayout = spec.layouts[0];
 
     firstLayout.margin = {

@@ -1,4 +1,5 @@
 {
+    "$schema": "./assets/unit-vis-schema.json",
     "data": {"url": "data/titanic3.csv"},
     "layouts": [
       {
