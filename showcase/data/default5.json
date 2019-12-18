@@ -1,6 +1,9 @@
 {
-  "data": {"url": "data/titanic3.csv"},
-  "layouts": [{
+  "data": {
+    "url": "data/titanic3.csv"
+  },
+  "layouts": [
+    {
       "subgroup": {
         "type": "groupby",
         "key": "pclass"
@@ -40,5 +43,6 @@
       "key": "survived_text",
       "type": "categorical"
     }
-  }
+  },
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json"
 }

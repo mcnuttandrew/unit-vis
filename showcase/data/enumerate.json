@@ -1,6 +1,8 @@
 {
   "title": "Titanic",
-  "data": {"url": "data/titanic3.csv"},
+  "data": {
+    "url": "data/titanic3.csv"
+  },
   "width": 640,
   "height": 480,
   "padding": {
@@ -16,10 +18,11 @@
       "key": "survived",
       "type": "categorical",
       "isShared": true
-      },
+    },
     "size": {
       "type": "max",
       "isShared": false
     }
-  }
+  },
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json"
 }

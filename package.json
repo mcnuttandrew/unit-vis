@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@types/d3": "^5.7.2",
+    "@types/node": "^12.12.21",
     "@types/react": "^16.9.16",
     "@types/react-dom": "^16.9.4",
     "@typescript-eslint/eslint-plugin": "^2.11.0",
@@ -30,6 +31,7 @@
     "eslint-plugin-react": "^6.9.0",
     "faucet": "^0.0.1",
     "hex-over": "^0.0.2",
+    "hoopoe": "^1.0.1",
     "tape": "4",
     "webpack": "4",
     "webpack-cli": "^3.0.8"
@@ -46,9 +48,7 @@
     "d3-hierarchy": "^1.1.8",
     "d3-scale": "^3.2.1",
     "d3-scale-chromatic": "^1.5.0",
-    "d3-selection": "^1.4.1",
-    "point-in-polygon": "^1.0.1",
-    "polybooljs": "^1.2.0"
+    "d3-selection": "^1.4.1"
   },
   "repository": {
     "type": "git",

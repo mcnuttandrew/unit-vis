@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import Chart from './chart';
 import DefaultChooser from './default-chooser';
 import CodeEditor from './codeEditor';
-import {UnitSpec} from '../../index.d';
+import {Spec} from '../../index.d';
 
 export default function Root() {
   const [code, changeSpec] = useState('{}');
@@ -22,7 +22,7 @@ export default function Root() {
             code={code}
           />
         </div>
-        <Chart spec={!inError ? (JSON.parse(code) as UnitSpec) : null} />
+        <Chart spec={!inError ? (JSON.parse(code) as Spec) : null} />
       </div>
     </div>
   );

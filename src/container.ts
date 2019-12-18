@@ -1,7 +1,7 @@
-import {DataRow, UnitSpec, Container} from '../index.d';
+import {DataRow, Spec, Container} from '../index.d';
 export function buildRootContainer(
   csv_data: DataRow[],
-  spec: UnitSpec,
+  spec: Spec,
 ): Container {
   if (!spec.hasOwnProperty('padding')) {
     spec.padding = {

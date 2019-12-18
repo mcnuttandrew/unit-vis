@@ -20,45 +20,21 @@ function addMarkdownProps(value: any) {
   return value;
 }
 
-// @ts-ignore
+// // @ts-ignore
 const unitVisSchema = require('./assets/unit-vis-schema.json');
 addMarkdownProps(unitVisSchema);
-
-const schemas = [
-  {
-    schema: unitVisSchema,
-    uri: './assets/unit-vis-schema.json',
-  },
-  // {
-  //   // @ts-ignore
-  //   schema: mergeDeep({}, vegaLiteSchema, {
-  //     $ref: '#/definitions/Config',
-  //     definitions: {
-  //       Config: {
-  //         properties: {
-  //           $schema: {
-  //             type: 'string',
-  //           },
-  //         },
-  //       },
-  //     },
-  //   }),
-  //   uri: 'https://vega.github.io/schema/vega-lite/v4.json#Config',
-  // },
-  // {
-  //   schema: {
-  //     $schema: 'http://json-schema.org/draft-06/schema#',
-  //     type: 'object',
-  //   },
-  //   uri: 'https://vega.github.io/schema/vega/v5.json#Config',
-  // },
-];
 
 export default function setupMonaco() {
   Monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
     allowComments: false,
     enableSchemaRequest: true,
-    schemas,
+    schemas: [
+      {
+        uri: 'https://unit-vis.netlify.com/assets/unit-vis-schema.json', // id of the first schema
+        fileMatch: ['*'], // associate with our model
+        schema: unitVisSchema,
+      },
+    ],
     validate: true,
   });
 

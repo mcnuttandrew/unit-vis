@@ -1,10 +1,10 @@
 import React, {useEffect} from 'react';
 
 import UnitVis from '../../index';
-import {UnitSpec} from '../../index.d';
+import {Spec} from '../../index.d';
 
 interface Props {
-  spec?: UnitSpec;
+  spec?: Spec;
 }
 
 export default function Chart(props: Props) {

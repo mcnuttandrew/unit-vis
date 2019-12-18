@@ -1,9 +1,16 @@
 {
-  "title" : "Titanic",
-  "data": {"url": "data/titanic.csv"},
+  "title": "Titanic",
+  "data": {
+    "url": "data/titanic.csv"
+  },
   "width": 1000,
   "height": 480,
-  "padding": {"top": 10, "left": 30, "bottom": 30, "right": 10},
+  "padding": {
+    "top": 10,
+    "left": 30,
+    "bottom": 30,
+    "right": 10
+  },
   "layouts": [
     {
       "name": "layout1",
@@ -12,15 +19,25 @@
         "key": "Class",
         "isKeyShared": true
       },
-      "aspect_ratio":"fillX",
+      "aspect_ratio": "fillX",
       "size": {
-        "type":"uniform",
+        "type": "uniform",
         "isShared": false
       },
       "direction": "LRBT",
       "align": "LB",
-      "margin": {"top": 10, "left": 30, "bottom": 30, "right": 10},
-      "padding": {"top": 10, "left": 30, "bottom": 30, "right": 10}
+      "margin": {
+        "top": 10,
+        "left": 30,
+        "bottom": 30,
+        "right": 10
+      },
+      "padding": {
+        "top": 10,
+        "left": 30,
+        "bottom": 30,
+        "right": 10
+      }
     },
     {
       "name": "layout2",
@@ -29,15 +46,25 @@
         "key": "Sex",
         "isKeyShared": true
       },
-      "aspect_ratio":"fillY",
+      "aspect_ratio": "fillY",
       "size": {
         "type": "uniform",
         "isShared": false
       },
       "direction": "LRTB",
       "align": "LB",
-      "margin": {"top": 10, "left": 30, "bottom": 30, "right": 10},
-      "padding": {"top": 10, "left": 30, "bottom": 30, "right": 10}
+      "margin": {
+        "top": 10,
+        "left": 30,
+        "bottom": 30,
+        "right": 10
+      },
+      "padding": {
+        "top": 10,
+        "left": 30,
+        "bottom": 30,
+        "right": 10
+      }
     },
     {
       "name": "layout3",
@@ -46,16 +73,27 @@
         "key": "id",
         "isKeyShared": false
       },
-      "aspect_ratio":"square",
+      "aspect_ratio": "square",
       "size": {
-        "type":"uniform",
+        "type": "uniform",
         "isShared": false
       },
       "direction": "LRTB",
       "align": "LB",
-      "margin": {"top": 10, "left": 30, "bottom": 30, "right": 10},
-      "padding": {"top": 10, "left": 30, "bottom": 30, "right": 10}
-    }],
+      "margin": {
+        "top": 10,
+        "left": 30,
+        "bottom": 30,
+        "right": 10
+      },
+      "padding": {
+        "top": 10,
+        "left": 30,
+        "bottom": 30,
+        "right": 10
+      }
+    }
+  ],
   "mark": {
     "shape": "circle",
     "color": "survival",
@@ -64,5 +102,6 @@
       "isShared": false
     },
     "isColorScaleShared": true
-  }
+  },
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json"
 }

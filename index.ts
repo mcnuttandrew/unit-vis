@@ -3,8 +3,8 @@ import * as d3 from 'd3';
 import {buildRootContainer} from './src/container';
 import {applyLayout, buildLayoutList} from './src/layout';
 import {drawUnit} from './src/drawing';
-import {UnitSpec, DataRow} from './index.d';
-export default function UnitChart(divId: string, spec: UnitSpec) {
+import {Spec, DataRow} from './index.d';
+export default function UnitChart(divId: string, spec: Spec) {
   applyDefault(spec);
   if (!spec.data) {
     return;
@@ -18,7 +18,7 @@ export default function UnitChart(divId: string, spec: UnitSpec) {
   }
 }
 
-function renderChart(data: DataRow[], spec: UnitSpec, divId: string) {
+function renderChart(data: DataRow[], spec: Spec, divId: string) {
   data.forEach(function(d, i) {
     d.id = i;
   });

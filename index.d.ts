@@ -7,7 +7,11 @@ interface Padding {
   right: number;
   bottom: number;
 }
-export interface UnitSpec {
+
+/**
+ * A specification of the unit vis grammar
+ */
+export interface Spec {
   /**
    * The title of the rendered chart, currently unused
    */
@@ -50,6 +54,9 @@ export interface UnitSpec {
   padding?: Padding;
 }
 
+/**
+ * A layout stage
+ */
 export interface Layout {
   subgroup: {
     type: string;
