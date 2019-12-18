@@ -1,4 +1,4 @@
-import {DataRow, UnitSpec, Container} from '../index';
+import {DataRow, UnitSpec, Container} from '../index.d';
 export function buildRootContainer(
   csv_data: DataRow[],
   spec: UnitSpec,

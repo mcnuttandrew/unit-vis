@@ -1,6 +1,6 @@
 import {min, extent, sum, scan, range} from 'd3-array';
 import {scaleLinear} from 'd3';
-import {Layout, Container, EdgeInfo} from '../index';
+import {Layout, Container, EdgeInfo} from '../index.d';
 import treemapMultidimensional from './treemap';
 import * as d3 from 'd3';
 

@@ -3,7 +3,7 @@ import {min} from 'd3-array';
 import {scaleOrdinal} from 'd3-scale';
 import {select} from 'd3-selection';
 import {schemeCategory10} from 'd3-scale-chromatic';
-import {Container, UnitSpec, Layout} from '../index';
+import {Container, UnitSpec, Layout} from '../index.d';
 
 export function drawUnit(
   container: Container,
