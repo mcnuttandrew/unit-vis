@@ -1,5 +1,5 @@
 import {applyDefault} from './src/defaults';
-import * as d3 from 'd3';
+import {csv} from 'd3-fetch';
 import {buildRootContainer} from './src/container';
 import {applyLayout, buildLayoutList} from './src/layout';
 import {drawUnit} from './src/drawing';
@@ -10,7 +10,7 @@ export default function UnitChart(divId: string, spec: Spec) {
     return;
   }
   if (spec.data.url) {
-    d3.csv(spec.data.url).then((csv_data: DataRow[]) => {
+    csv(spec.data.url).then((csv_data: DataRow[]) => {
       renderChart(csv_data, spec, divId);
     });
   } else {

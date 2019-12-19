@@ -23,7 +23,6 @@
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-es2017": "^6.22.0",
     "babel-preset-stage-2": "^6.22.0",
-    "d3-color": "^1.2.3",
     "eslint": "^3.13.1",
     "eslint-config-uber-es2015": "^3.0.1",
     "eslint-config-uber-jsx": "^3.0.1",
@@ -33,6 +32,8 @@
     "hex-over": "^0.0.2",
     "hoopoe": "^1.0.1",
     "tape": "4",
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.7.3",
     "webpack": "4",
     "webpack-cli": "^3.0.8"
   },
@@ -43,8 +44,9 @@
     ]
   },
   "dependencies": {
-    "d3": "^5.14.2",
     "d3-array": "^2.4.0",
+    "d3-color": "^1.2.3",
+    "d3-fetch": "^1.1.2",
     "d3-hierarchy": "^1.1.8",
     "d3-scale": "^3.2.1",
     "d3-scale-chromatic": "^1.5.0",

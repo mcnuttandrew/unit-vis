@@ -1,8 +1,15 @@
-import {min, extent, sum, scan, range} from 'd3-array';
-import {scaleLinear} from 'd3';
+import {
+  min,
+  extent,
+  sum,
+  scan,
+  range,
+  // @ts-ignore
+  bin,
+} from 'd3-array';
+import {scaleLinear} from 'd3-scale';
 import {Layout, Container, EdgeInfo} from '../index.d';
 import treemapMultidimensional from './treemap';
-import * as d3 from 'd3';
 
 // add linked list connections across layouts
 export function buildLayoutList(layouts: Layout[]): any {
@@ -646,15 +653,22 @@ function buildEdgeInfoByDirection(
 }
 
 function getKeys(data: any, groupby: string) {
-  var myNest = d3
-    .nest()
-    .key(function(d: any) {
-      return d[groupby];
-    })
-    .entries(data);
-  return myNest.map(function(d) {
-    return d.key;
-  });
+  return Object.keys(
+    data.reduce((acc: any, row: any) => {
+      acc[row[groupby]] = true;
+      return acc;
+    }, {}),
+  );
+  // var myNest = d3
+  //   .nest()
+  //   .key(function(d: any) {
+  //     return d[groupby];
+  //   })
+  //   .entries(data);
+  // console.log(myNest);
+  // return myNest.map(function(d) {
+  //   return d.key;
+  // });
 }
 
 function emptyContainersFromKeys(data: any, groupby: string) {
@@ -1109,8 +1123,7 @@ function makeContainersForNumericalVar(
     return d[subgroup.key] != '';
   });
 
-  var bins = d3
-    .histogram()
+  var bins = bin()
     .domain(extentVal)
     .thresholds(tickArray)
     .value(function(d: any) {

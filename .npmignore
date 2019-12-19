@@ -1,7 +1,5 @@
 *.sublime-*
 assets/
-docs/
-examples/
 showcase/
 src/
 test/
