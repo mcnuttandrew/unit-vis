@@ -3,3 +3,5 @@ build/
 node_modules
 npm-debug.log
 dist
+index.js
+index.js.map

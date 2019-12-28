@@ -4,7 +4,7 @@ import {buildRootContainer} from './src/container';
 import {applyLayout, buildLayoutList} from './src/layout';
 import {drawUnit} from './src/drawing';
 import {Spec, DataRow} from './index.d';
-export default function UnitChart(divId: string, spec: Spec) {
+export default function UnitChart(divId: string, spec: Spec): void {
   applyDefault(spec);
   if (!spec.data) {
     return;
@@ -18,7 +18,7 @@ export default function UnitChart(divId: string, spec: Spec) {
   }
 }
 
-function renderChart(data: DataRow[], spec: Spec, divId: string) {
+function renderChart(data: DataRow[], spec: Spec, divId: string): void {
   data.forEach(function(d, i) {
     d.id = i;
   });

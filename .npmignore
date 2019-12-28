@@ -3,5 +3,10 @@ assets/
 showcase/
 src/
 test/
-index.js
+scripts/
 node_modules/
+webpack.config.js
+tsconfig.json
+babel.config.js
+netlify.toml
+index.ts

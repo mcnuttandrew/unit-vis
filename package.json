@@ -54,12 +54,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mcnuttandrew/table-cartogram.git"
+    "url": "git+https://github.com/mcnuttandrew/unit-vis.git"
   },
   "author": "",
+  "description": "A grammar for unit visualizations",
   "bugs": {
-    "url": "https://github.com/mcnuttandrew/table-cartogram/issues"
+    "url": "https://github.com/mcnuttandrew/unit-vis/issues"
   },
-  "homepage": "https://github.com/mcnuttandrew/table-cartogram#readme",
-  "description": ""
+  "homepage": "https://github.com/mcnuttandrew/unit-vis#readme",
+  "main": "dist/index.js",
+  "directories": {
+    "test": "test"
+  }
 }
