@@ -1,0 +1,83 @@
+body,
+html{
+  /* font-family: 'Open Sans', sans-serif; */
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+body {
+  font-family: 'Quicksand', sans-serif;
+}
+.appbody,
+#app {
+  height: 100%;
+  width: 100%;
+}
+.main-content {
+  height: 100%;
+}
+
+.default-chooser {
+  background: lightgray;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  padding: 0 20px;
+}
+.header {
+  background: black;
+  color: white;
+  padding: 5px 20px;
+  margin: 0;
+}
+
+.editor {
+  height: 100%;
+  width: 600px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-down {
+  display: flex;
+  flex-direction: column;
+}
+
+
+
+#target {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+select {
+  background-color: rgba(0, 0, 0, 0);
+  border: 0;
+  color: #444;
+	display: flex;
+	font-size: 10px;
+	font-weight: 700;
+  height: 10px;
+  margin: 0;
+  text-transform: uppercase;
+  text-align-last: right;
+	width: 100%;
+}
+select::-ms-expand {
+	display: none;
+}
+select:focus {
+	border-color: #aaa;
+	color: #222;
+	outline: none;
+}
+select option {
+	font-weight: normal;
+  text-transform: none;
+}

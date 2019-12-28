@@ -19,9 +19,5 @@ export default function Chart(props: Props) {
     }
   }, [spec]);
 
-  return (
-    <div>
-      <div id="target" />
-    </div>
-  );
+  return <div id="target" />;
 }

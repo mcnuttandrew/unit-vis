@@ -37,7 +37,7 @@ export default class CodeEditor extends React.Component<Props, State> {
     const {code} = this.props;
 
     return (
-      <div className="" style={{width: '400px', height: '100%'}}>
+      <div className="editor">
         <MonacoEditor
           ref="monaco"
           language="json"
@@ -50,7 +50,7 @@ export default class CodeEditor extends React.Component<Props, State> {
             minimap: {
               enabled: false,
             },
-            fontSize: 10,
+            fontSize: 15,
             lineDecorationsWidth: 0,
             lineNumbersMinChars: 3,
           }}

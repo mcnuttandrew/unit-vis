@@ -9,10 +9,12 @@ export default function Root() {
   const [inError, setError] = useState(false);
 
   return (
-    <div>
-      <h1>Unit Vis test</h1>
-      <div style={{display: 'flex'}}>
-        <div style={{display: 'flex', flexDirection: 'column'}}>
+    <div className="appbody">
+      <div className="header">
+        <h1>Unit Vis</h1>
+      </div>
+      <div className="flex main-content">
+        <div className="flex-down">
           <DefaultChooser setCode={changeSpec} />
           <CodeEditor
             setNewCode={({code, inError}) => {

@@ -2,10 +2,8 @@ import ReactDOM from 'react-dom';
 import React from 'react';
 import Root from './components/root';
 import setupMonaco from './monaco';
+import './main.css';
 
 setupMonaco();
 
-const el = document.createElement('div');
-document.body.appendChild(el);
-
-ReactDOM.render(<Root />, el);
+ReactDOM.render(<Root />, document.querySelector('#app'));

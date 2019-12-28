@@ -50,7 +50,7 @@ export default function DefaultChooser(props: Props) {
   }, [selectedSpec]);
 
   return (
-    <div>
+    <div className="default-chooser">
       <select
         onChange={({target: {value}}) => changeSpec(value)}
         value={selectedSpec}
