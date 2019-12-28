@@ -1,7 +1,5 @@
-const webpack = require('webpack');
 const path = require('path');
 module.exports = {
-  plugins: [new webpack.optimize.UglifyJsPlugin()],
   resolve: {
     // Add '.ts' and '.tsx' as resolvable extensions.
     extensions: ['.ts', '.tsx', '.js'],
@@ -44,7 +42,7 @@ module.exports = {
   },
   output: {
     filename: './index.js',
-    libraryTarget: 'umd',
+    libraryTarget: 'commonjs',
     library: 'unit-vis',
     path: path.resolve(__dirname, './'),
   },

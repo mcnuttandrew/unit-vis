@@ -1,0 +1,248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Container": {
+      "additionalProperties": {},
+      "properties": {
+        "contents": {
+          "items": {},
+          "type": "array"
+        },
+        "label": {
+          "type": "string"
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Layout"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Layout"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "visualspace": {
+          "properties": {
+            "height": {
+              "type": "number"
+            },
+            "padding": {
+              "$ref": "#/definitions/Padding"
+            },
+            "posX": {
+              "type": "number"
+            },
+            "posY": {
+              "type": "number"
+            },
+            "width": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "DataRow": {
+      "additionalProperties": {},
+      "type": "object"
+    },
+    "EdgeInfo": {
+      "properties": {
+        "fillingEdgeRepetitionCount": {
+          "type": "number"
+        },
+        "fillingEdgeSideUnitLength": {
+          "type": "number"
+        },
+        "remainingEdgeSideUnitLength": {
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "Layout": {
+      "additionalProperties": {},
+      "description": "A layout stage",
+      "properties": {
+        "aspect_ratio": {
+          "type": "string"
+        },
+        "box": {
+          "properties": {
+            "fill": {
+              "type": "string"
+            },
+            "opacity": {
+              "type": "number"
+            },
+            "stroke": {
+              "type": "string"
+            },
+            "stroke-width": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "child": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Layout"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Layout"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "size": {
+          "properties": {
+            "isShared": {
+              "type": "boolean"
+            },
+            "key": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "sizeSharingGroup": {},
+        "subgroup": {
+          "properties": {
+            "aspect_ratio": {
+              "type": "number"
+            },
+            "key": {
+              "type": "string"
+            },
+            "numBin": {
+              "type": "number"
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Padding": {
+      "properties": {
+        "bottom": {
+          "type": "number"
+        },
+        "left": {
+          "type": "number"
+        },
+        "right": {
+          "type": "number"
+        },
+        "top": {
+          "description": "Size of padding internal padding for layout",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "Spec": {
+      "description": "A specification of the unit vis grammar",
+      "properties": {
+        "data": {
+          "description": "The data source for the input values, either points to a csv or to json array of values",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "values": {
+              "items": {
+                "$ref": "#/definitions/DataRow"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "height": {
+          "description": "The height of the output",
+          "type": "number"
+        },
+        "layouts": {
+          "description": "The specification for how the points should be laid out in space",
+          "items": {
+            "$ref": "#/definitions/Layout"
+          },
+          "type": "array"
+        },
+        "mark": {
+          "description": "The mark to be shown, defaults to circle",
+          "properties": {
+            "color": {
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "shape": {
+              "enum": [
+                "circle",
+                "rect"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "padding": {
+          "$ref": "#/definitions/Padding",
+          "description": "Size of padding internal padding for layout, defaults to zeroes"
+        },
+        "title": {
+          "description": "The title of the rendered chart, currently unused",
+          "type": "string"
+        },
+        "width": {
+          "description": "The width of the output",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$ref": "#/definitions/Spec"
+}
