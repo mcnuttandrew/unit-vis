@@ -7,6 +7,7 @@ We make the core library available as reusable utility with a single entry point
 yarn add unit-vis
 ```
 
+You can see a demo [here](https://unit-vis.netlify.com/).
 
 ## Usage
 
