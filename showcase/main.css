@@ -18,6 +18,10 @@ body {
   height: 100%;
 }
 
+.left-column {
+  position: relative;
+}
+
 .default-chooser {
   background: lightgray;
   display: flex;
@@ -47,13 +51,44 @@ body {
   flex-direction: column;
 }
 
-
+.right-column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
 
 #target {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  height: 100%;
   width: 100%;
+}
+
+.about-container {
+  padding: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.chart-panel-controls {
+  align-items: center;
+  flex-direction: row-reverse;
+  display: flex;
+  height: 50px;
+  padding-right: 30px;
+  width: 100%;
+}
+
+.chart-option {
+  cursor: pointer;
+  margin-right: 20px;
+}
+.selected-chart-option {
+  text-decoration: underline;
 }
 
 select {
@@ -80,4 +115,17 @@ select:focus {
 select option {
 	font-weight: normal;
   text-transform: none;
+}
+
+.error-bar {
+  background: red;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  height: 50px;
+  position: absolute;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

@@ -5,9 +5,8 @@ interface Props {
   setNewCode: ({code, inError}: {code: string; inError: boolean}) => void;
   code: string;
 }
-interface State {}
 
-export default class CodeEditor extends React.Component<Props, State> {
+export default class CodeEditor extends React.Component<Props> {
   constructor(props: any) {
     super(props);
     this.editorDidMount = this.editorDidMount.bind(this);
