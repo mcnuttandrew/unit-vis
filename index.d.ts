@@ -1,7 +1,7 @@
+/**
+ *  Size of padding internal padding for layout
+ */
 interface Padding {
-  /**
-   *  Size of padding internal padding for layout
-   */
   top: number;
   left: number;
   right: number;
@@ -59,6 +59,9 @@ export interface Spec {
   padding?: Padding;
 }
 
+/**
+ * The allowed directions. Allowed: 'BT', 'BTLR', 'BTRL', 'LR', 'LRBT', 'LRTB', 'RL', 'RLBT', 'RLTB', 'TB', 'TBLR', 'TBRL'
+ */
 export type Direction =
   | 'BT'
   | 'BTLR'
@@ -72,6 +75,10 @@ export type Direction =
   | 'TB'
   | 'TBLR'
   | 'TBRL';
+
+/**
+ * The allowed directions. Allowed: bottom center middle right top CB CM CT LB LM LT RB RM RT left
+ */
 export type Align =
   | 'bottom'
   | 'center'
@@ -89,8 +96,16 @@ export type Align =
   | 'RT'
   | 'left';
 
+/**
+ * The allowed types of layouts, options include flatten, groupby, bin, passthrough, gridxy
+ */
 export type layoutTypes = 'flatten' | 'groupby' | 'bin' | 'passthrough' | 'gridxy';
+
+/**
+ * The allowed aspect ratios. Includes square, parents, fillX, fillY, maxfill, and custom.
+ */
 export type aspectRatio = 'square' | 'parent' | 'fillX' | 'fillY' | 'maxfill' | 'custom';
+
 /**
  * A layout stage
  */
@@ -105,10 +120,10 @@ export interface Layout {
   aspect_ratio?: aspectRatio;
   parent?: string | Layout;
   child?: string | Layout;
-  size?: {
-    isShared?: boolean;
-    type?: 'uniform' | 'sum' | 'count';
-    key?: string;
+  size: {
+    isShared: boolean;
+    type: 'uniform' | 'sum' | 'count';
+    key: string;
   };
   name?: string;
   box?: {
@@ -118,7 +133,6 @@ export interface Layout {
     'stroke-width'?: string;
   };
   type?: layoutTypes;
-  // [x: string]: any;
   sizeSharingGroup?: any;
   padding?: Padding;
   margin?: Padding;
