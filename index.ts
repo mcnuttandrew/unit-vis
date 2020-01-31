@@ -30,9 +30,9 @@ function renderChart(data: DataRow[], spec: Spec, divId: string): void {
   let childContainers = [rootContainer];
   let currentLayout = layoutList.head;
 
-  while (currentLayout !== 'EndOfLayout') {
+  while (currentLayout && currentLayout !== 'EndOfLayout') {
     childContainers = applyLayout(childContainers, currentLayout);
-    currentLayout = currentLayout.child;
+    currentLayout = currentLayout && currentLayout.child;
   }
 
   drawUnit(rootContainer, spec, layoutList, divId);

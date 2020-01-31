@@ -32,12 +32,17 @@ export interface Spec {
   /**
    * The mark to be shown, defaults to circle
    */
-  mark?: {
+  mark: {
     color: {
       key: string;
-      type: string;
+      type: 'categorical';
     };
-    shape?: 'circle' | 'rect';
+    size: 'uniform' | 'count' | 'sum';
+
+    /**
+     * The final share to be shown, either circle or rect
+     */
+    shape: 'circle' | 'rect';
   };
 
   /**
@@ -54,22 +59,54 @@ export interface Spec {
   padding?: Padding;
 }
 
-/**
+export type Direction =
+  | 'BT'
+  | 'BTLR'
+  | 'BTRL'
+  | 'LR'
+  | 'LRBT'
+  | 'LRTB'
+  | 'RL'
+  | 'RLBT'
+  | 'RLTB'
+  | 'TB'
+  | 'TBLR'
+  | 'TBRL';
+export type Align =
+  | 'bottom'
+  | 'center'
+  | 'middle'
+  | 'right'
+  | 'top'
+  | 'CB'
+  | 'CM'
+  | 'CT'
+  | 'LB'
+  | 'LM'
+  | 'LT'
+  | 'RB'
+  | 'RM'
+  | 'RT'
+  | 'left';
+
+export type layoutTypes = 'flatten' | 'groupby' | 'bin' | 'passthrough' | 'gridxy';
+  /**
  * A layout stage
  */
 export interface Layout {
   subgroup: {
-    type: string;
+    type: layoutTypes;
     key?: string;
     numBin?: number;
     aspect_ratio?: number;
+    isShared?: boolean;
   };
   aspect_ratio?: string;
   parent?: string | Layout;
   child?: string | Layout;
   size?: {
     isShared?: boolean;
-    type?: string;
+    type?: 'uniform' | 'sum' | 'count';
     key?: string;
   };
   name?: string;
@@ -79,9 +116,19 @@ export interface Layout {
     stroke?: string;
     'stroke-width'?: string;
   };
-  type?: string;
-  [x: string]: any;
+  type?: layoutTypes;
+  // [x: string]: any;
   sizeSharingGroup?: any;
+  padding?: Padding;
+  margin?: Padding;
+  direction?: Direction;
+  align?: Align;
+  containers?: Container[];
+  sort?: {
+    key: string;
+    type: 'numerical';
+    direction: 'ascending' | 'descending';
+  };
 }
 
 export interface DataRow {
@@ -89,7 +136,7 @@ export interface DataRow {
 }
 export interface Container {
   contents: any[];
-  label: string;
+  label: 'root';
   visualspace: {
     width: number;
     height: number;
@@ -99,7 +146,8 @@ export interface Container {
   };
   layout: string | Layout;
   parent: string | Layout;
-  [x: string]: any;
+  x0?: number;
+  x1?: number;
 }
 
 export interface EdgeInfo {

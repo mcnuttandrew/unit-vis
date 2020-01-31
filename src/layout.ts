@@ -70,8 +70,11 @@ export function applyLayout(containerList: Container[], layout: Layout) {
 function getSharingAncestorContainer(
   container: Container,
   layout: Layout,
-  item: string,
+  item: 'size' | 'subgroup' | null,
 ): Container {
+  if (!layout) {
+    return container;
+  }
   if (layout.type === 'flatten') {
     return container;
   }
@@ -100,7 +103,7 @@ function makeContainers(container: Container, layout: Layout) {
   var sharingDomain = getSharingDomain(sharingAncestorContainer);
   var childContainers;
 
-  switch (layout.subgroup && layout.subgroup.type) {
+  switch (layout && layout.subgroup && layout.subgroup.type) {
     case 'groupby':
       childContainers = makeContainersForCategoricalVar(
         sharingDomain,
@@ -167,6 +170,9 @@ function applySharedSizeOnContainers(
 }
 
 function applySharedSize(layout: Layout | string) {
+  if (!layout) {
+    return;
+  }
   const isString = typeof layout === 'string';
   if (
     (isString && layout === 'EndOfLayout') ||
@@ -457,7 +463,7 @@ function getPosYforFillY(
 }
 
 function handleSharedSize(container: Container, layout: Layout) {
-  if (layout.size.isShared) {
+  if (layout && layout.size.isShared) {
     if (!layout.hasOwnProperty('sizeSharingGroup')) {
       layout.sizeSharingGroup = [];
     }
@@ -659,16 +665,6 @@ function getKeys(data: any, groupby: string) {
       return acc;
     }, {}),
   );
-  // var myNest = d3
-  //   .nest()
-  //   .key(function(d: any) {
-  //     return d[groupby];
-  //   })
-  //   .entries(data);
-  // console.log(myNest);
-  // return myNest.map(function(d) {
-  //   return d.key;
-  // });
 }
 
 function emptyContainersFromKeys(data: any, groupby: string) {
@@ -1108,7 +1104,10 @@ function makeContainersForNumericalVar(
 ) {
   var subgroup = layout.subgroup;
 
-  var extentVal = extent(sharingDomain, (d: Container) => +d[subgroup.key]);
+  var extentVal = extent(sharingDomain, (d: any) => {
+    console.log(subgroup.key)
+    return Number(d[subgroup.key])
+  });
 
   var tempScale = scaleLinear()
     .domain([0, subgroup.numBin])
@@ -1134,18 +1133,14 @@ function makeContainersForNumericalVar(
   nullGroup.x0 = '';
   nullGroup.x1 = '';
 
-  var containers = nullGroup.concat(bins);
-
-  containers = containers.map(function(d: Container) {
+  return nullGroup.concat(bins).map(function(d: Container) {
     return {
       contents: d,
-      label: d.x0 + '-' + d.x1,
+      label: `${d.x0}-${d.x1}`,
       visualspace: {},
       parent: container,
     };
   });
-
-  return containers;
 }
 
 function getAvailableSpace(container: Container, layout: Layout) {

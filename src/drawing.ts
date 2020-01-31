@@ -195,7 +195,7 @@ function calcRadiusShared(
 }
 
 function buildLeafContainersArr(container: Container, layout: Layout) {
-  if (layout.child !== 'EndOfLayout') {
+  if (layout && layout.child !== 'EndOfLayout') {
     const leafs: any[] = [];
     container.contents.forEach(function(c: any) {
       const childLayout = typeof layout === 'string' ? null : layout.child;
