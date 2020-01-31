@@ -1,23 +1,15 @@
-import {
-  defaultLayout,
-  defaultWidth,
-  defaultHeight,
-  defaultMark,
-  defaultPadding,
-} from './constants';
+import {defaultLayout, defaultWidth, defaultHeight, defaultMark, defaultPadding} from './constants';
 
-function applyDefaultObj(specObj: any, defaultObj: any) {
-  for (var prop in defaultObj) {
-    specObj[prop] = specObj.hasOwnProperty(prop)
-      ? specObj[prop]
-      : defaultObj[prop];
+function applyDefaultObj(specObj: any, defaultObj: any): void {
+  for (const prop in defaultObj) {
+    specObj[prop] = specObj.hasOwnProperty(prop) ? specObj[prop] : defaultObj[prop];
     if (typeof specObj[prop] === 'object') {
       applyDefaultObj(specObj[prop], defaultObj[prop]);
     }
   }
 }
 
-export function applyDefault(spec: any) {
+export function applyDefault(spec: any): void {
   spec.mark = spec.mark ? spec.mark : defaultMark;
 
   applyDefaultObj(spec.mark, defaultMark);
@@ -26,8 +18,8 @@ export function applyDefault(spec: any) {
   spec.width = spec.width ? spec.width : defaultWidth;
   spec.height = spec.height ? spec.height : defaultHeight;
   const numLayouts = (spec.layouts || []).length;
-  for (var i = 0; i < numLayouts; i++) {
-    var layout = spec.layouts[i];
+  for (let i = 0; i < numLayouts; i++) {
+    const layout = spec.layouts[i];
 
     applyDefaultObj(layout, defaultLayout);
 
@@ -48,7 +40,7 @@ export function applyDefault(spec: any) {
   }
 
   if (numLayouts > 1) {
-    var firstLayout = spec.layouts[0];
+    const firstLayout = spec.layouts[0];
 
     firstLayout.margin = {
       top: 5,

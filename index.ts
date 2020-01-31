@@ -3,7 +3,7 @@ import {csv} from 'd3-fetch';
 import {buildRootContainer} from './src/container';
 import {applyLayout, buildLayoutList} from './src/layout';
 import {drawUnit} from './src/drawing';
-import {Spec, DataRow} from './index.d';
+import {Spec, DataRow, Layout} from './index.d';
 
 export const UnitChart = (divId: string, spec: Spec): void => {
   applyDefault(spec);
@@ -31,9 +31,9 @@ function renderChart(data: DataRow[], spec: Spec, divId: string): void {
   let currentLayout = layoutList.head;
 
   while (currentLayout && currentLayout !== 'EndOfLayout') {
-    childContainers = applyLayout(childContainers, currentLayout);
-    currentLayout = currentLayout && currentLayout.child;
+    childContainers = applyLayout(childContainers, currentLayout as Layout);
+    currentLayout = currentLayout && (currentLayout as Layout).child;
   }
 
-  drawUnit(rootContainer, spec, layoutList, divId);
+  drawUnit(rootContainer, spec, (layoutList as unknown) as any[], divId);
 }

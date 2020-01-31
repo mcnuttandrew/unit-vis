@@ -90,7 +90,8 @@ export type Align =
   | 'left';
 
 export type layoutTypes = 'flatten' | 'groupby' | 'bin' | 'passthrough' | 'gridxy';
-  /**
+export type aspectRatio = 'square' | 'parent' | 'fillX' | 'fillY' | 'maxfill' | 'custom';
+/**
  * A layout stage
  */
 export interface Layout {
@@ -101,7 +102,7 @@ export interface Layout {
     aspect_ratio?: number;
     isShared?: boolean;
   };
-  aspect_ratio?: string;
+  aspect_ratio?: aspectRatio;
   parent?: string | Layout;
   child?: string | Layout;
   size?: {
@@ -134,18 +135,19 @@ export interface Layout {
 export interface DataRow {
   [x: string]: any;
 }
+export type VisualSpace = {
+  width: number;
+  height: number;
+  posX: number;
+  posY: number;
+  padding: Padding;
+};
 export interface Container {
   contents: any[];
-  label: 'root';
-  visualspace: {
-    width: number;
-    height: number;
-    posX: number;
-    posY: number;
-    padding: Padding;
-  };
-  layout: string | Layout;
-  parent: string | Layout;
+  label: 'root' | string | number;
+  visualspace: VisualSpace;
+  layout: string | Layout | null;
+  parent: string | Layout | Container | null;
   x0?: number;
   x1?: number;
 }
@@ -153,5 +155,6 @@ export interface Container {
 export interface EdgeInfo {
   remainingEdgeSideUnitLength: number;
   fillingEdgeSideUnitLength: number;
+  remainingEdgeRepetitionCount: number;
   fillingEdgeRepetitionCount: number;
 }
