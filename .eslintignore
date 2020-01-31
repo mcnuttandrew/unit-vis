@@ -1,2 +1,8 @@
-/node_modules/*
-/showcase/node_modules/*
+node_modules/*
+dist/*
+_maps/*
+bundle.js
+0.bundle.worker.js
+index.js
+index.js.map
+showcase/

@@ -42,4 +42,6 @@ export default function ExampleComponent() {
 
 ## Grammar
 
+
+
 If you are following along from the paper, we make one small change to the language. Specifically we change the data attribute from being a string pointing to the data, and replace it with an object, either {url: 'MY_CSV_LOCATION.csv'} or {url: JSON_OF_YOUR_DATA}. Not too bad!

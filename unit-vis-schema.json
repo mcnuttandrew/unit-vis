@@ -1,15 +1,38 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
+    "Align": {
+      "description": "The allowed directions. Allowed: bottom center middle right top CB CM CT LB LM LT RB RM RT left",
+      "enum": [
+        "CB",
+        "CM",
+        "CT",
+        "LB",
+        "LM",
+        "LT",
+        "RB",
+        "RM",
+        "RT",
+        "bottom",
+        "center",
+        "left",
+        "middle",
+        "right",
+        "top"
+      ],
+      "type": "string"
+    },
     "Container": {
-      "additionalProperties": {},
       "properties": {
         "contents": {
           "items": {},
           "type": "array"
         },
         "label": {
-          "type": "string"
+          "type": [
+            "string",
+            "number"
+          ]
         },
         "layout": {
           "anyOf": [
@@ -25,6 +48,9 @@
           "anyOf": [
             {
               "$ref": "#/definitions/Layout"
+            },
+            {
+              "$ref": "#/definitions/Container"
             },
             {
               "type": "string"
@@ -50,6 +76,12 @@
             }
           },
           "type": "object"
+        },
+        "x0": {
+          "type": "number"
+        },
+        "x1": {
+          "type": "number"
         }
       },
       "type": "object"
@@ -57,6 +89,24 @@
     "DataRow": {
       "additionalProperties": {},
       "type": "object"
+    },
+    "Direction": {
+      "description": "The allowed directions. Allowed: 'BT', 'BTLR', 'BTRL', 'LR', 'LRBT', 'LRTB', 'RL', 'RLBT', 'RLTB', 'TB', 'TBLR', 'TBRL'",
+      "enum": [
+        "BT",
+        "BTLR",
+        "BTRL",
+        "LR",
+        "LRBT",
+        "LRTB",
+        "RL",
+        "RLBT",
+        "RLTB",
+        "TB",
+        "TBLR",
+        "TBRL"
+      ],
+      "type": "string"
     },
     "EdgeInfo": {
       "properties": {
@@ -66,6 +116,9 @@
         "fillingEdgeSideUnitLength": {
           "type": "number"
         },
+        "remainingEdgeRepetitionCount": {
+          "type": "number"
+        },
         "remainingEdgeSideUnitLength": {
           "type": "number"
         }
@@ -73,11 +126,13 @@
       "type": "object"
     },
     "Layout": {
-      "additionalProperties": {},
       "description": "A layout stage",
       "properties": {
+        "align": {
+          "$ref": "#/definitions/Align"
+        },
         "aspect_ratio": {
-          "type": "string"
+          "$ref": "#/definitions/aspectRatio"
         },
         "box": {
           "properties": {
@@ -106,8 +161,23 @@
             }
           ]
         },
+        "containers": {
+          "items": {
+            "$ref": "#/definitions/Container"
+          },
+          "type": "array"
+        },
+        "direction": {
+          "$ref": "#/definitions/Direction"
+        },
+        "margin": {
+          "$ref": "#/definitions/Padding"
+        },
         "name": {
           "type": "string"
+        },
+        "padding": {
+          "$ref": "#/definitions/Padding"
         },
         "parent": {
           "anyOf": [
@@ -128,16 +198,45 @@
               "type": "string"
             },
             "type": {
+              "enum": [
+                "count",
+                "sum",
+                "uniform"
+              ],
               "type": "string"
             }
           },
           "type": "object"
         },
         "sizeSharingGroup": {},
+        "sort": {
+          "properties": {
+            "direction": {
+              "enum": [
+                "ascending",
+                "descending"
+              ],
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "numerical"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
         "subgroup": {
           "properties": {
             "aspect_ratio": {
               "type": "number"
+            },
+            "isShared": {
+              "type": "boolean"
             },
             "key": {
               "type": "string"
@@ -146,18 +245,19 @@
               "type": "number"
             },
             "type": {
-              "type": "string"
+              "$ref": "#/definitions/layoutTypes"
             }
           },
           "type": "object"
         },
         "type": {
-          "type": "string"
+          "$ref": "#/definitions/layoutTypes"
         }
       },
       "type": "object"
     },
     "Padding": {
+      "description": "Size of padding internal padding for layout",
       "properties": {
         "bottom": {
           "type": "number"
@@ -169,7 +269,6 @@
           "type": "number"
         },
         "top": {
-          "description": "Size of padding internal padding for layout",
           "type": "number"
         }
       },
@@ -213,15 +312,27 @@
                   "type": "string"
                 },
                 "type": {
+                  "enum": [
+                    "categorical"
+                  ],
                   "type": "string"
                 }
               },
               "type": "object"
             },
             "shape": {
+              "description": "The final share to be shown, either circle or rect",
               "enum": [
                 "circle",
                 "rect"
+              ],
+              "type": "string"
+            },
+            "size": {
+              "enum": [
+                "count",
+                "sum",
+                "uniform"
               ],
               "type": "string"
             }
@@ -242,6 +353,49 @@
         }
       },
       "type": "object"
+    },
+    "VisualSpace": {
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "padding": {
+          "$ref": "#/definitions/Padding"
+        },
+        "posX": {
+          "type": "number"
+        },
+        "posY": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "aspectRatio": {
+      "description": "The allowed aspect ratios. Includes square, parents, fillX, fillY, maxfill, and custom.",
+      "enum": [
+        "custom",
+        "fillX",
+        "fillY",
+        "maxfill",
+        "parent",
+        "square"
+      ],
+      "type": "string"
+    },
+    "layoutTypes": {
+      "description": "The allowed types of layouts, options include flatten, groupby, bin, passthrough, gridxy",
+      "enum": [
+        "bin",
+        "flatten",
+        "gridxy",
+        "groupby",
+        "passthrough"
+      ],
+      "type": "string"
     }
   },
   "$ref": "#/definitions/Spec"

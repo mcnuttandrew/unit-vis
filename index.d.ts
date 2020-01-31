@@ -1,7 +1,7 @@
+/**
+ *  Size of padding internal padding for layout
+ */
 interface Padding {
-  /**
-   *  Size of padding internal padding for layout
-   */
   top: number;
   left: number;
   right: number;
@@ -32,12 +32,17 @@ export interface Spec {
   /**
    * The mark to be shown, defaults to circle
    */
-  mark?: {
+  mark: {
     color: {
       key: string;
-      type: string;
+      type: 'categorical';
     };
-    shape?: 'circle' | 'rect';
+    size: 'uniform' | 'count' | 'sum';
+
+    /**
+     * The final share to be shown, either circle or rect
+     */
+    shape: 'circle' | 'rect';
   };
 
   /**
@@ -55,22 +60,70 @@ export interface Spec {
 }
 
 /**
+ * The allowed directions. Allowed: 'BT', 'BTLR', 'BTRL', 'LR', 'LRBT', 'LRTB', 'RL', 'RLBT', 'RLTB', 'TB', 'TBLR', 'TBRL'
+ */
+export type Direction =
+  | 'BT'
+  | 'BTLR'
+  | 'BTRL'
+  | 'LR'
+  | 'LRBT'
+  | 'LRTB'
+  | 'RL'
+  | 'RLBT'
+  | 'RLTB'
+  | 'TB'
+  | 'TBLR'
+  | 'TBRL';
+
+/**
+ * The allowed directions. Allowed: bottom center middle right top CB CM CT LB LM LT RB RM RT left
+ */
+export type Align =
+  | 'bottom'
+  | 'center'
+  | 'middle'
+  | 'right'
+  | 'top'
+  | 'CB'
+  | 'CM'
+  | 'CT'
+  | 'LB'
+  | 'LM'
+  | 'LT'
+  | 'RB'
+  | 'RM'
+  | 'RT'
+  | 'left';
+
+/**
+ * The allowed types of layouts, options include flatten, groupby, bin, passthrough, gridxy
+ */
+export type layoutTypes = 'flatten' | 'groupby' | 'bin' | 'passthrough' | 'gridxy';
+
+/**
+ * The allowed aspect ratios. Includes square, parents, fillX, fillY, maxfill, and custom.
+ */
+export type aspectRatio = 'square' | 'parent' | 'fillX' | 'fillY' | 'maxfill' | 'custom';
+
+/**
  * A layout stage
  */
 export interface Layout {
   subgroup: {
-    type: string;
+    type: layoutTypes;
     key?: string;
     numBin?: number;
     aspect_ratio?: number;
+    isShared?: boolean;
   };
-  aspect_ratio?: string;
+  aspect_ratio?: aspectRatio;
   parent?: string | Layout;
   child?: string | Layout;
-  size?: {
-    isShared?: boolean;
-    type?: string;
-    key?: string;
+  size: {
+    isShared: boolean;
+    type: 'uniform' | 'sum' | 'count';
+    key: string;
   };
   name?: string;
   box?: {
@@ -79,31 +132,43 @@ export interface Layout {
     stroke?: string;
     'stroke-width'?: string;
   };
-  type?: string;
-  [x: string]: any;
+  type?: layoutTypes;
   sizeSharingGroup?: any;
+  padding?: Padding;
+  margin?: Padding;
+  direction?: Direction;
+  align?: Align;
+  containers?: Container[];
+  sort?: {
+    key: string;
+    type: 'numerical';
+    direction: 'ascending' | 'descending';
+  };
 }
 
 export interface DataRow {
   [x: string]: any;
 }
+export type VisualSpace = {
+  width: number;
+  height: number;
+  posX: number;
+  posY: number;
+  padding: Padding;
+};
 export interface Container {
   contents: any[];
-  label: string;
-  visualspace: {
-    width: number;
-    height: number;
-    posX: number;
-    posY: number;
-    padding: Padding;
-  };
-  layout: string | Layout;
-  parent: string | Layout;
-  [x: string]: any;
+  label: 'root' | string | number;
+  visualspace: VisualSpace;
+  layout: string | Layout | null;
+  parent: string | Layout | Container | null;
+  x0?: number;
+  x1?: number;
 }
 
 export interface EdgeInfo {
   remainingEdgeSideUnitLength: number;
   fillingEdgeSideUnitLength: number;
+  remainingEdgeRepetitionCount: number;
   fillingEdgeRepetitionCount: number;
 }
