@@ -8,6 +8,49 @@ interface Padding {
   bottom: number;
 }
 
+type SizePolicies = 'uniform' | 'count' | 'sum';
+
+/**
+ * The color scheme for coloring the nodes,
+ * allowed values: schemeCategory10, schemeAccent, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10
+ * Defaults to schemeCategory10
+ */
+type Schemes =
+  | 'schemeCategory10'
+  | 'schemeAccent'
+  | 'schemeDark2'
+  | 'schemePaired'
+  | 'schemePastel1'
+  | 'schemePastel2'
+  | 'schemeSet1'
+  | 'schemeSet2'
+  | 'schemeSet3'
+  | 'schemeTableau10';
+export type Mark = {
+  color: {
+    /**
+     * The key by which the nodes should be colored
+     */
+    key: string;
+    type: 'categorical';
+    /**
+     * The color scheme for coloring the nodes,
+     * allowed values: schemeCategory10, schemeAccent, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10
+     * Defaults to schemeCategory10
+     */
+    scheme: Schemes;
+  };
+  size: {
+    isShared: boolean;
+    type: SizePolicies;
+  };
+
+  /**
+   * The final share to be shown, either circle or rect
+   */
+  shape: 'circle' | 'rect';
+};
+
 /**
  * A specification of the unit vis grammar
  */
@@ -32,18 +75,7 @@ export interface Spec {
   /**
    * The mark to be shown, defaults to circle
    */
-  mark: {
-    color: {
-      key: string;
-      type: 'categorical';
-    };
-    size: 'uniform' | 'count' | 'sum';
-
-    /**
-     * The final share to be shown, either circle or rect
-     */
-    shape: 'circle' | 'rect';
-  };
+  mark: Mark;
 
   /**
    * The height of the output

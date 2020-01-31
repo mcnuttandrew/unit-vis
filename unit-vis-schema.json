@@ -256,6 +256,49 @@
       },
       "type": "object"
     },
+    "Mark": {
+      "properties": {
+        "color": {
+          "properties": {
+            "key": {
+              "description": "The key by which the nodes should be colored",
+              "type": "string"
+            },
+            "scheme": {
+              "$ref": "#/definitions/Schemes",
+              "description": "The color scheme for coloring the nodes,\nallowed values: schemeCategory10, schemeAccent, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10\nDefaults to schemeCategory10"
+            },
+            "type": {
+              "enum": [
+                "categorical"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "shape": {
+          "description": "The final share to be shown, either circle or rect",
+          "enum": [
+            "circle",
+            "rect"
+          ],
+          "type": "string"
+        },
+        "size": {
+          "properties": {
+            "isShared": {
+              "type": "boolean"
+            },
+            "type": {
+              "$ref": "#/definitions/SizePolicies"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
     "Padding": {
       "description": "Size of padding internal padding for layout",
       "properties": {
@@ -273,6 +316,30 @@
         }
       },
       "type": "object"
+    },
+    "Schemes": {
+      "description": "The color scheme for coloring the nodes,\nallowed values: schemeCategory10, schemeAccent, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10\nDefaults to schemeCategory10",
+      "enum": [
+        "schemeAccent",
+        "schemeCategory10",
+        "schemeDark2",
+        "schemePaired",
+        "schemePastel1",
+        "schemePastel2",
+        "schemeSet1",
+        "schemeSet2",
+        "schemeSet3",
+        "schemeTableau10"
+      ],
+      "type": "string"
+    },
+    "SizePolicies": {
+      "enum": [
+        "count",
+        "sum",
+        "uniform"
+      ],
+      "type": "string"
     },
     "Spec": {
       "description": "A specification of the unit vis grammar",
@@ -309,7 +376,12 @@
             "color": {
               "properties": {
                 "key": {
+                  "description": "The key by which the nodes should be colored",
                   "type": "string"
+                },
+                "scheme": {
+                  "$ref": "#/definitions/Schemes",
+                  "description": "The color scheme for coloring the nodes,\nallowed values: schemeCategory10, schemeAccent, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10\nDefaults to schemeCategory10"
                 },
                 "type": {
                   "enum": [
@@ -329,12 +401,15 @@
               "type": "string"
             },
             "size": {
-              "enum": [
-                "count",
-                "sum",
-                "uniform"
-              ],
-              "type": "string"
+              "properties": {
+                "isShared": {
+                  "type": "boolean"
+                },
+                "type": {
+                  "$ref": "#/definitions/SizePolicies"
+                }
+              },
+              "type": "object"
             }
           },
           "type": "object"

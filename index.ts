@@ -35,5 +35,5 @@ function renderChart(data: DataRow[], spec: Spec, divId: string): void {
     currentLayout = currentLayout && (currentLayout as Layout).child;
   }
 
-  drawUnit(rootContainer, spec, (layoutList as unknown) as any[], divId);
+  drawUnit(rootContainer, spec, layoutList as {head: Layout}, divId);
 }

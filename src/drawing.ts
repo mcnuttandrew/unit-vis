@@ -2,8 +2,8 @@ import {defaultSetting} from './constants';
 import {min} from 'd3-array';
 import {scaleOrdinal} from 'd3-scale';
 import {select} from 'd3-selection';
-import {schemeCategory10} from 'd3-scale-chromatic';
-import {Container, Spec, Layout} from '../index.d';
+import * as schemes from 'd3-scale-chromatic';
+import {Container, Spec, Layout, Mark} from '../index.d';
 
 function buildLeafContainersArr(container: Container, layout: Layout): Container[] {
   if (layout && layout.child !== 'EndOfLayout') {
@@ -25,18 +25,14 @@ function buildLeafContainersArr(container: Container, layout: Layout): Container
   }
 }
 
-function setMarksColor(marks: any, rootContainer: Container, markPolicy: any): void {
+function setMarksColor(marks: any, rootContainer: Container, markPolicy: Mark): void {
   // layoutList: any
   // const leafContainersArr = buildLeafContainersArr(rootContainer, layoutList.head);
-  const color = scaleOrdinal(schemeCategory10);
+  const color = scaleOrdinal((schemes as any)[markPolicy.color.scheme || 'schemeCategory10']);
   if (markPolicy.color.type === 'categorical') {
     console.log('continue');
   } else {
     console.log('TODO');
-  }
-  if (markPolicy.color.key === 'survived_text') {
-    color('YES');
-    color('NO');
   }
   marks.style('fill', (d: any) => color(d.contents[0][markPolicy.color.key]));
 }
@@ -56,19 +52,17 @@ function calcRadiusIsolated(leafContainer: Container, markPolicy: any): number {
 function calcRadiusShared(
   leafContainer: Container,
   rootContainer: Container,
-  markPolicy: any,
-  layoutList: any,
+  markPolicy: Mark,
+  layoutList: {head: Layout},
 ): number {
-  const leafContainersArr = buildLeafContainersArr(rootContainer, layoutList.head);
-
-  return min(leafContainersArr, d => calcRadiusIsolated(d, markPolicy));
+  return min(buildLeafContainersArr(rootContainer, layoutList.head), d => calcRadiusIsolated(d, markPolicy));
 }
 
 function calcRadius(
   leafContainer: Container,
   rootContainer: Container,
-  markPolicy: any,
-  layoutList: any,
+  markPolicy: Mark,
+  layoutList: {head: Layout},
 ): number {
   if (markPolicy.size.isShared) {
     return calcRadiusShared(leafContainer, rootContainer, markPolicy, layoutList);
@@ -77,7 +71,7 @@ function calcRadius(
   }
 }
 
-export function drawUnit(container: Container, spec: Spec, layoutList: any[], divId: string): void {
+export function drawUnit(container: Container, spec: Spec, layoutList: {head: Layout}, divId: string): void {
   const layouts = spec.layouts;
   const markPolicy = spec.mark;
 
