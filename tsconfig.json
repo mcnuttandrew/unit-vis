@@ -7,7 +7,11 @@
         "target": "es6",
         "jsx": "react",
         "esModuleInterop": true,
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "forceConsistentCasingInFileNames": true,
+        "importHelpers": true,
+        "removeComments": true,
+        "strict": false
     },
     "include": [
       "src/**/*",
