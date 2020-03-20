@@ -9,7 +9,6 @@ export default function Root() {
   const [code, changeSpec] = useState('{}');
   const [inError, setError] = useState(false);
   const [showAbout, setAbout] = useState(false);
-
   let parsedCode = null;
   try {
     parsedCode = JSON.parse(code) as Spec;
@@ -59,14 +58,10 @@ export default function Root() {
             <div className="about-container">
               <h1>About this application</h1>
               <p>
-                This is the display page for the unit-vis library. This library
-                is a fork of{' '}
-                <a href="https://github.com/intuinno/unit">
-                  Park etal's unit grammar
-                </a>{' '}
-                for specifying unit based charts through a declarative grammar.
-                We make the core library available as reusable utility with a
-                single entry point.{' '}
+                This is the display page for the unit-vis library. This library is a fork of{' '}
+                <a href="https://github.com/intuinno/unit">Park etal's unit grammar</a> for specifying unit
+                based charts through a declarative grammar. We make the core library available as reusable
+                utility with a single entry point.{' '}
                 <a href="https://www.microsoft.com/en-us/research/uploads/prod/2019/01/atom.pdf">
                   You can find the paper here
                 </a>
@@ -74,11 +69,9 @@ export default function Root() {
               </p>
 
               <p>
-                You can download this library via npm through npm install
-                unit-vis. The code is available on{' '}
-                <a href="https://github.com/mcnuttandrew/unit-vis">github</a> if
-                you are curious about how it's implement or if you wish to
-                contribute to the library.
+                You can download this library via npm through npm install unit-vis. The code is available on{' '}
+                <a href="https://github.com/mcnuttandrew/unit-vis">github</a> if you are curious about how
+                it's implement or if you wish to contribute to the library.
               </p>
             </div>
           )}
