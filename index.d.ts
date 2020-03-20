@@ -8,7 +8,7 @@ interface Padding {
   bottom: number;
 }
 
-type SizePolicies = 'uniform' | 'count' | 'sum';
+type SizePolicies = 'uniform' | 'count' | 'sum' | 'max';
 
 /**
  * The color scheme for coloring the nodes,
@@ -38,17 +38,21 @@ export type Mark = {
      * allowed values: schemeCategory10, schemeAccent, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10
      * Defaults to schemeCategory10
      */
-    scheme: Schemes;
+    scheme?: Schemes;
+    isShared?: boolean;
   };
-  size: {
+  size?: {
     isShared: boolean;
     type: SizePolicies;
   };
 
   /**
    * The final share to be shown, either circle or rect
+   * Defaults to circle
    */
-  shape: 'circle' | 'rect';
+  shape?: 'circle' | 'rect';
+
+  isColorScaleShared?: boolean;
 };
 
 /**
@@ -75,7 +79,7 @@ export interface Spec {
   /**
    * The mark to be shown, defaults to circle
    */
-  mark: Mark;
+  mark?: Mark;
 
   /**
    * The height of the output
@@ -89,6 +93,8 @@ export interface Spec {
    * Size of padding internal padding for layout, defaults to zeroes
    */
   padding?: Padding;
+  // TODO this should be the version control knob
+  $schema?: string;
 }
 
 /**
@@ -152,17 +158,17 @@ export interface Layout {
   aspect_ratio?: aspectRatio;
   parent?: string | Layout;
   child?: string | Layout;
-  size: {
-    isShared: boolean;
-    type: 'uniform' | 'sum' | 'count';
-    key: string;
+  size?: {
+    isShared?: boolean;
+    type?: 'uniform' | 'sum' | 'count';
+    key?: string;
   };
   name?: string;
   box?: {
     opacity?: number;
     fill?: string;
     stroke?: string;
-    'stroke-width'?: string;
+    'stroke-width'?: string | number;
   };
   type?: layoutTypes;
   sizeSharingGroup?: any;
@@ -173,8 +179,10 @@ export interface Layout {
   containers?: Container[];
   sort?: {
     key: string;
-    type: 'numerical';
-    direction: 'ascending' | 'descending';
+    // TODO i'm unsure this does anything
+    type?: 'numerical' | 'categorical';
+    // Todo what is the default ehre
+    direction?: 'ascending' | 'descending';
   };
 }
 

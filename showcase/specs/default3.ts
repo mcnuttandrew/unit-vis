@@ -1,0 +1,29 @@
+import {Spec} from '../../index.d';
+const spec: Spec = {
+  data: {
+    url: 'data/titanic3.csv',
+  },
+  layouts: [
+    {
+      subgroup: {
+        type: 'groupby',
+        key: 'pclass',
+      },
+      aspect_ratio: 'fillX',
+    },
+    {
+      subgroup: {
+        type: 'flatten',
+      },
+      aspect_ratio: 'maxfill',
+    },
+  ],
+  mark: {
+    color: {
+      key: 'survived_text',
+      type: 'categorical',
+    },
+  },
+  $schema: 'https://unit-vis.netlify.com/assets/unit-vis-schema.json',
+};
+export default spec;
