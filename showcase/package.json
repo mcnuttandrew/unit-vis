@@ -35,8 +35,8 @@
     "source-map-loader": "^0.2.4",
     "style-loader": "^1.0.2",
     "tape": "^4.6.3",
-    "ts-loader": "^6.2.1",
-    "typescript": "^3.7.3",
+    "ts-loader": "^6.2.0",
+    "typescript": "^3.6.4",
     "uglify-js": "^2.8.22",
     "webpack": "4",
     "webpack-dev-server": "^3.2.1"

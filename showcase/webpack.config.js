@@ -1,5 +1,6 @@
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-
+const isProd = process.env.NODE_ENV === 'production'; // eslint-disable-line
+const isAnalysis = process.env.NODE_ENV === 'analysis'; // eslint-disable-line
 module.exports = {
   plugins: [
     new MonacoWebpackPlugin({
@@ -7,7 +8,7 @@ module.exports = {
       languages: ['json'],
       features: ['!gotoSymbol'],
     }),
-  ],
+  ].filter(d => d),
   resolve: {
     // Add '.ts' and '.tsx' as resolvable extensions.
     extensions: ['.ts', '.tsx', '.js'],
@@ -54,6 +55,10 @@ module.exports = {
           presets: ['es2017'],
         },
       },
+      {
+        test: /\.md$/i,
+        use: 'raw-loader',
+      },
     ],
   },
   devServer: {
@@ -62,9 +67,6 @@ module.exports = {
       maxModules: 0, // Set the maximum number of modules to be shown
     },
   },
-  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development', // eslint-disable-line
-  devtool:
-    process.env.NODE_ENV === 'production' // eslint-disable-line
-      ? 'source-map'
-      : 'cheap-module-source-map',
+  mode: isProd || isAnalysis ? 'production' : 'development',
+  devtool: isProd || isAnalysis ? 'source-map' : 'cheap-module-source-map',
 };
