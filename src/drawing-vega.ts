@@ -1,20 +1,16 @@
 import embed from 'vega-embed';
 import {Spec as VegaSpec} from 'vega-typings';
 import {defaultSetting} from './constants';
-import {min} from 'd3-array';
 
 import {Container, Spec, Layout, Mark} from '../index.d';
-
-const markMap = {
-  circle: 'circle',
-  rect: 'square',
-};
 
 interface RenderMark {
   type: 'mark';
   posX: number;
   posY: number;
-  radius: number;
+  radius?: number;
+  height?: number;
+  width?: number;
   color: string;
   data: any;
 }
@@ -28,36 +24,35 @@ interface RenderContainer {
 }
 type Renderables = RenderContainer | RenderMark;
 
-function calcRadiusIsolated(leafContainer: Container, markPolicy: any): number {
+function calcRadiusIsolated(leafContainer: Container, markPolicy: Mark): number {
   const {width, height} = leafContainer.visualspace;
   return markPolicy.size.type === 'max' ? (width > height ? height / 2.0 : width / 2.0) : 0;
 }
 
 function buildLeafContainersArr(container: Container, layout: Layout): Container[] {
   if (layout && layout.child !== 'EndOfLayout') {
-    return container.contents.reduce((leafs, c: Container) => {
-      const childLayout = typeof layout === 'string' ? null : layout.child;
-      return !childLayout ? leafs : leafs.concat(buildLeafContainersArr(c, childLayout as Layout));
-    }, []);
+    const childLayout = typeof layout === 'string' ? null : layout.child;
+    return !childLayout
+      ? []
+      : container.contents.reduce(
+          (acc, c: Container) => acc.concat(buildLeafContainersArr(c, childLayout as Layout)),
+          [],
+        );
   }
   return container.contents;
 }
 
 function calcRadiusShared(rootContainer: Container, markPolicy: Mark, layoutList: {head: Layout}): number {
-  // return Math.min(
-  //   ...buildLeafContainersArr(rootContainer, layoutList.head).map(d => calcRadiusIsolated(d, markPolicy)),
-  // );
-  return min(buildLeafContainersArr(rootContainer, layoutList.head), d => calcRadiusIsolated(d, markPolicy));
+  return Math.min(
+    ...buildLeafContainersArr(rootContainer, layoutList.head).map(d => calcRadiusIsolated(d, markPolicy)),
+  );
 }
 
-const radii = {} as any;
 function bindCalcRadius(rootContainer: Container, markPolicy: Mark, layoutList: {head: Layout}) {
   return function calcRadius(leafContainer: Container): number {
-    const radius = markPolicy.size.isShared
+    return markPolicy.size.isShared
       ? calcRadiusShared(rootContainer, markPolicy, layoutList)
       : calcRadiusIsolated(leafContainer, markPolicy);
-    radii[radius] = true;
-    return radius;
   };
 }
 
@@ -85,23 +80,30 @@ function recursiveExtractPositions(
         if (hasChild) {
           return acc.concat(recursiveExtractPositions(child, markPolicy, calcRadius, layoutList.slice(1)));
         }
-        const {posX, posY, width: childWidth} = child.visualspace;
+        const {posX, posY, width: childWidth, height: childHeight} = child.visualspace;
         const data = child.contents[0];
         if (!data) {
           return acc;
         }
 
         // const radius = calcRadius(container, root, markPolicy, layoutList);
-        const radius = calcRadius(container);
-        const isCircle = markPolicy.shape === 'circle';
-        return acc.concat({
+        const radius = calcRadius(child);
+        const isRect = markPolicy.shape === 'rect';
+        const newRow = {
           type: 'mark',
-          posX: posX + (isCircle ? childWidth / 2 : 0),
-          posY: posY + (isCircle ? childWidth / 2 : 0),
+          posX: posX + (!isRect ? childWidth / 2 : 0),
+          posY: posY + (!isRect ? childHeight / 2 : 0),
           color: data[markPolicy.color.key],
           data,
-          radius: isCircle ? radius : childWidth,
-        } as RenderMark);
+        } as RenderMark;
+        if (!isRect) {
+          newRow.radius = radius;
+        }
+        if (isRect) {
+          newRow.height = childWidth;
+          newRow.width = childHeight;
+        }
+        return acc.concat(newRow);
       },
       [
         {
@@ -200,28 +202,51 @@ export default function drawUnitVega(
           },
         },
       },
-      {
-        type: 'symbol',
+      // {
+      //   type: 'symbol',
+      //   from: {data: 'markPositions'},
+      //   encode: {
+      //     enter: {
+      //       shape: {value: markMap[spec.mark.shape]},
+      //       x: {scale: 'xscale', field: 'posX'},
+      //       y: {scale: 'yscale', field: 'posY'},
+      //       // size: {signal: '(3.1415 * 4 * sqrt(datum.radius))'},
+      //       size: {signal: 'datum.radius * datum.radius'},
+      //       fill: {scale: 'colorScale', field: 'color'},
+      //       tooltip: {signal: 'datum.data'},
+      //     },
+      //   },
+      // },
+      spec.mark.shape === 'rect' && {
+        type: 'rect',
         from: {data: 'markPositions'},
         encode: {
           enter: {
-            shape: {value: markMap[spec.mark.shape]},
             x: {scale: 'xscale', field: 'posX'},
             y: {scale: 'yscale', field: 'posY'},
-            // size: {signal: '(3.1415 * 4 * sqrt(datum.radius))'},
-            size: {signal: 'datum.radius * datum.radius'},
+            width: {signal: 'datum.height'},
+            height: {signal: 'datum.width'},
             fill: {scale: 'colorScale', field: 'color'},
             tooltip: {signal: 'datum.data'},
           },
         },
       },
-    ],
+      spec.mark.shape !== 'rect' && {
+        type: 'arc',
+        from: {data: 'markPositions'},
+        encode: {
+          enter: {
+            x: {scale: 'xscale', field: 'posX'},
+            y: {scale: 'yscale', field: 'posY'},
+            startAngle: {value: 0},
+            endAngle: {value: Math.PI * 2},
+            outerRadius: {signal: 'datum.radius'},
+            fill: {scale: 'colorScale', field: 'color'},
+            tooltip: {signal: 'datum.data'},
+          },
+        },
+      },
+    ].filter(d => d) as any[],
   };
   embed(`#${divId}`, newSpec, {mode: 'vega', renderer: 'svg'});
-  console.log(
-    'new radii',
-    Object.keys(radii)
-      .map(x => Number(x))
-      .sort((a, b) => (Number(a) > Number(b) ? 1 : -1)),
-  );
 }

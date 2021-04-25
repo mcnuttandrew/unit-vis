@@ -58,22 +58,17 @@ function calcRadiusShared(
   return min(buildLeafContainersArr(rootContainer, layoutList.head), d => calcRadiusIsolated(d, markPolicy));
 }
 
-const radii = {} as any;
 function calcRadius(
   leafContainer: Container,
   rootContainer: Container,
   markPolicy: Mark,
   layoutList: {head: Layout},
 ): number {
-  let radius;
   if (markPolicy.size.isShared) {
-    radius = calcRadiusShared(leafContainer, rootContainer, markPolicy, layoutList);
+    return calcRadiusShared(leafContainer, rootContainer, markPolicy, layoutList);
   } else {
-    radius = calcRadiusIsolated(leafContainer, markPolicy);
+    return calcRadiusIsolated(leafContainer, markPolicy);
   }
-  // radius = calcRadiusIsolated(leafContainer, markPolicy);
-  radii[radius as any] = true;
-  return radius;
 }
 
 export function drawUnit(container: Container, spec: Spec, layoutList: {head: Layout}, divId: string): void {
@@ -167,19 +162,10 @@ export function drawUnit(container: Container, spec: Spec, layoutList: {head: La
         .append('circle')
         .attr('cx', d => d.visualspace.width / 2)
         .attr('cy', d => d.visualspace.height / 2)
-        .attr('r', d => {
-          // console.log('what the fuck', d);
-          return calcRadius(d, container, markPolicy, layoutList);
-        })
+        .attr('r', d => calcRadius(d, container, markPolicy, layoutList))
         .style('fill', 'purple');
       break;
   }
 
   setMarksColor(marks, container, markPolicy);
-  console.log(
-    'old radii',
-    Object.keys(radii)
-      .map(x => Number(x))
-      .sort((a, b) => (Number(a) > Number(b) ? 1 : -1)),
-  );
 }
