@@ -26,15 +26,15 @@ function buildLeafContainersArr(container: Container, layout: Layout): Container
 }
 
 function setMarksColor(marks: any, rootContainer: Container, markPolicy: Mark): void {
-  // layoutList: any
-  // const leafContainersArr = buildLeafContainersArr(rootContainer, layoutList.head);
   const color = scaleOrdinal((schemes as any)[markPolicy.color.scheme || 'schemeCategory10']);
   if (markPolicy.color.type === 'categorical') {
     console.log('continue');
   } else {
     console.log('TODO');
   }
-  marks.style('fill', (d: any) => color(d.contents[0][markPolicy.color.key]));
+  marks.style('fill', (d: any) => {
+    return color(d.contents[0][markPolicy.color.key]);
+  });
 }
 
 function calcRadiusIsolated(leafContainer: Container, markPolicy: any): number {
@@ -58,17 +58,22 @@ function calcRadiusShared(
   return min(buildLeafContainersArr(rootContainer, layoutList.head), d => calcRadiusIsolated(d, markPolicy));
 }
 
+const radii = {} as any;
 function calcRadius(
   leafContainer: Container,
   rootContainer: Container,
   markPolicy: Mark,
   layoutList: {head: Layout},
 ): number {
+  let radius;
   if (markPolicy.size.isShared) {
-    return calcRadiusShared(leafContainer, rootContainer, markPolicy, layoutList);
+    radius = calcRadiusShared(leafContainer, rootContainer, markPolicy, layoutList);
   } else {
-    return calcRadiusIsolated(leafContainer, markPolicy);
+    radius = calcRadiusIsolated(leafContainer, markPolicy);
   }
+  // radius = calcRadiusIsolated(leafContainer, markPolicy);
+  radii[radius as any] = true;
+  return radius;
 }
 
 export function drawUnit(container: Container, spec: Spec, layoutList: {head: Layout}, divId: string): void {
@@ -147,15 +152,6 @@ export function drawUnit(container: Container, spec: Spec, layoutList: {head: La
 
   let marks = null;
   switch (markPolicy.shape) {
-    case 'circle':
-      marks = currentGroup
-        .append('circle')
-        .attr('cx', d => d.visualspace.width / 2)
-        .attr('cy', d => d.visualspace.height / 2)
-        .attr('r', d => calcRadius(d, container, markPolicy, layoutList))
-        .style('fill', 'purple');
-      break;
-
     case 'rect':
       marks = currentGroup
         .append('rect')
@@ -165,15 +161,25 @@ export function drawUnit(container: Container, spec: Spec, layoutList: {head: La
         .attr('height', d => d.visualspace.height)
         .style('fill', 'purple');
       break;
+    case 'circle':
     default:
       marks = currentGroup
         .append('circle')
         .attr('cx', d => d.visualspace.width / 2)
         .attr('cy', d => d.visualspace.height / 2)
-        .attr('r', d => calcRadius(d, container, markPolicy, layoutList))
+        .attr('r', d => {
+          // console.log('what the fuck', d);
+          return calcRadius(d, container, markPolicy, layoutList);
+        })
         .style('fill', 'purple');
       break;
   }
 
   setMarksColor(marks, container, markPolicy);
+  console.log(
+    'old radii',
+    Object.keys(radii)
+      .map(x => Number(x))
+      .sort((a, b) => (Number(a) > Number(b) ? 1 : -1)),
+  );
 }

@@ -1,19 +1,20 @@
-body,
-html{
+body, html {
   /* font-family: 'Open Sans', sans-serif; */
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
+
 body {
   font-family: 'Quicksand', sans-serif;
 }
-.appbody,
-#app {
+
+.appbody, #app {
   height: 100%;
   width: 100%;
 }
+
 .main-content {
   height: 100%;
 }
@@ -30,6 +31,7 @@ body {
   height: 50px;
   padding: 0 20px;
 }
+
 .header {
   background: black;
   color: white;
@@ -55,6 +57,7 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
+  overflow-y: scroll;
 }
 
 #target {
@@ -87,6 +90,7 @@ body {
   cursor: pointer;
   margin-right: 20px;
 }
+
 .selected-chart-option {
   text-decoration: underline;
 }
@@ -95,25 +99,28 @@ select {
   background-color: rgba(0, 0, 0, 0);
   border: 0;
   color: #444;
-	display: flex;
-	font-size: 10px;
-	font-weight: 700;
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
   height: 10px;
   margin: 0;
   text-transform: uppercase;
   text-align-last: right;
-	width: 100%;
+  width: 100%;
 }
+
 select::-ms-expand {
-	display: none;
+  display: none;
 }
+
 select:focus {
-	border-color: #aaa;
-	color: #222;
-	outline: none;
+  border-color: #aaa;
+  color: #222;
+  outline: none;
 }
+
 select option {
-	font-weight: normal;
+  font-weight: normal;
   text-transform: none;
 }
 

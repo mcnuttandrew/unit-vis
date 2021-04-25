@@ -25,12 +25,12 @@ export default function Chart(props: Props) {
   }, [spec]);
 
   return (
-    <div>
-      <div>
+    <div className="flex-down">
+      <div className="flex-down">
         <span>Old backend</span>
         <div id="old-target" />
       </div>
-      <div>
+      <div className="flex-down">
         <span>New backend</span>
         <div id="new-target" />
       </div>
