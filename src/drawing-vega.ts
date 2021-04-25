@@ -69,7 +69,6 @@ function recursiveExtractPositions(
   markPolicy: Mark,
   calcRadius: (x: Container) => number,
   layoutList: Layout[],
-  // root: Container,
 ): Renderables[] {
   const layout = layoutList[0];
   const {posX: containerXOffset, posY: containerYOffset, height, width} = container.visualspace;
@@ -86,7 +85,6 @@ function recursiveExtractPositions(
           return acc;
         }
 
-        // const radius = calcRadius(container, root, markPolicy, layoutList);
         const radius = calcRadius(child);
         const isRect = markPolicy.shape === 'rect';
         const newRow = {
@@ -202,21 +200,6 @@ export default function drawUnitVega(
           },
         },
       },
-      // {
-      //   type: 'symbol',
-      //   from: {data: 'markPositions'},
-      //   encode: {
-      //     enter: {
-      //       shape: {value: markMap[spec.mark.shape]},
-      //       x: {scale: 'xscale', field: 'posX'},
-      //       y: {scale: 'yscale', field: 'posY'},
-      //       // size: {signal: '(3.1415 * 4 * sqrt(datum.radius))'},
-      //       size: {signal: 'datum.radius * datum.radius'},
-      //       fill: {scale: 'colorScale', field: 'color'},
-      //       tooltip: {signal: 'datum.data'},
-      //     },
-      //   },
-      // },
       spec.mark.shape === 'rect' && {
         type: 'rect',
         from: {data: 'markPositions'},
