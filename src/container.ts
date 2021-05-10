@@ -67,7 +67,6 @@ function makeContainersForNumericalVar(
   const subgroup = layout.subgroup;
 
   const extentVal = extent(sharingDomain, (d: any) => {
-    console.log(subgroup.key);
     return Number(d[subgroup.key]);
   });
 

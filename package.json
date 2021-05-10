@@ -49,10 +49,13 @@
     "d3-array": "^2.4.0",
     "d3-color": "^1.2.3",
     "d3-fetch": "^1.1.2",
-    "d3-hierarchy": "^1.1.8",
     "d3-scale": "^3.2.1",
     "d3-scale-chromatic": "^1.5.0",
-    "d3-selection": "^1.4.1"
+    "d3-selection": "^1.4.1",
+    "vega": "^5.13.0",
+    "vega-embed": "^6.17.0",
+    "vega-lite": "^4.13.1",
+    "vega-typings": "^0.21.0"
   },
   "repository": {
     "type": "git",

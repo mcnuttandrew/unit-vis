@@ -40,6 +40,7 @@ const spec: Spec = {
     },
   ],
   mark: {
+    shape: 'rect',
     color: {
       key: 'survived_text',
       type: 'categorical',
