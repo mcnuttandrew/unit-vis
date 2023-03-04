@@ -32,7 +32,6 @@
     "eslint-plugin-react": "^7.16.0",
     "faucet": "^0.0.1",
     "hex-over": "^0.0.2",
-    "hoopoe": "^1.0.1",
     "tape": "4",
     "ts-loader": "^6.2.1",
     "typescript": "^3.7.3",
