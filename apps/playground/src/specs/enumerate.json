@@ -10,5 +10,7 @@
     "shape": "circle",
     "color": {"key": "survived", "type": "categorical", "isShared": true},
     "size" : {"type": "max", "isShared": false}
-  }
+  },
+  "labels" : false,
+  "legend" : true
 }

@@ -50,5 +50,7 @@
     "color"             : {"key": "year", "type": "categorical", "scheme": "schemePaired"},
     "size"              : {"type": "max", "isShared": false},
     "isColorScaleShared": true
-  }
+  },
+  "labels" : false,
+  "legend" : true
 }

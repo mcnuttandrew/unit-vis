@@ -5,5 +5,7 @@
     {"subgroup": {"type": "groupby", "key": "pclass"}, "aspect_ratio": "fillX"  },
     {"subgroup": {"type": "flatten"                 }, "aspect_ratio": "maxfill"}
   ],
-  "mark"   : {"color": {"key": "survived_text", "type": "categorical"}}
+  "mark"   : {"color": {"key": "survived_text", "type": "categorical"}},
+  "labels" : false,
+  "legend" : true
 }

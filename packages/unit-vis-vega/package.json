@@ -28,7 +28,8 @@
   },
   "dependencies": {
     "@unit-vis/core": "0.1.0",
-    "vega": "^5.33.1"
+    "vega": "^5.33.1",
+    "vega-tooltip": "^1.1.0"
   },
   "repository": {
     "type": "git",

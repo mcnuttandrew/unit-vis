@@ -6,6 +6,7 @@ import type {
   Signal as VegaSignal,
   Spec as VegaSpec,
 } from "vega";
+import { Handler as TooltipHandler } from "vega-tooltip";
 import { defaultSetting } from "@unit-vis/core";
 
 import type { DataRow, Labels, Legend, Mark, Spec } from "@unit-vis/core";
@@ -487,11 +488,11 @@ export function isPortable(spec: Spec): boolean {
 /**
  * Mounts the chart in the element with id `divId` and returns the live view.
  *
- * This drives vega's `View` directly rather than going through `vega-embed`,
- * which is what keeps this package's dependency list to vega alone. What
- * vega-embed would have added on top is an actions menu; the view it hands back
- * can still render itself to an image (`view.toImageURL`), which is what that
- * menu's useful entry did.
+ * This drives vega's `View` directly rather than going through `vega-embed`.
+ * What vega-embed would have added on top is an actions menu and a
+ * `vega-tooltip` handler; the tooltip is worth keeping and installed below, and
+ * the view it hands back can still render itself to an image
+ * (`view.toImageURL`), which is what that menu's useful entry did.
  */
 export default async function drawUnitVega(
   spec: Spec,
@@ -508,6 +509,10 @@ export default async function drawUnitVega(
     // Marks carry a `tooltip` encoding, and without hover processing nothing
     // ever asks for it.
     hover: true,
+    // Vega's stock handler writes the row into the container's `title`
+    // attribute; vega-tooltip draws it by the pointer, which is what
+    // vega-embed used to install for us.
+    tooltip: new TooltipHandler().call,
   });
   await view.runAsync();
   return view;

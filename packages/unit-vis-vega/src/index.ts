@@ -9,7 +9,7 @@
  * re-exported here; the JS layout engine there is what the d3 backend draws
  * from, and what `test/backend-parity.test.ts` holds this compiler against.
  *
- * `vega` is the one dependency.
+ * `vega` and `vega-tooltip` are the dependencies.
  */
 import {applyDefault, fetchData} from '@unit-vis/core';
 import type {DataRow, Spec} from '@unit-vis/core';

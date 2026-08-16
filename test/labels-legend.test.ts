@@ -9,7 +9,7 @@ import {buildVegaSpec} from 'unit-vis-vega';
 import {classifyPath} from './harness/path-geometry';
 import {buildSceneForSpec, collectVegaLogs, renderOld, renderVegaHeadless} from './harness/render';
 import {modelFromVegaSvg, parseSvg, parseTransform} from './harness/svg-model';
-import {ALL_SPECS} from './harness/specs';
+import {ALL_SPECS, withoutDecorations} from './harness/specs';
 import type {Labels, Legend, Spec} from '@unit-vis/core';
 
 /**
@@ -20,9 +20,14 @@ import type {Labels, Legend, Spec} from '@unit-vis/core';
  */
 const BASE = 'penguins_species_column';
 
+/**
+ * The base spec with exactly the decorations named here, and no others: the
+ * example specs ship with `legend` on, and `specWith({})` has to mean a chart
+ * with nothing on it for the defaults below to be testing anything.
+ */
 function specWith(decorations: {labels?: boolean | Labels; legend?: boolean | Legend}): Spec {
   const base = ALL_SPECS.find(s => s.name === BASE)!.spec;
-  return {...(JSON.parse(JSON.stringify(base)) as Spec), ...decorations};
+  return {...withoutDecorations(base), ...decorations};
 }
 
 async function renderVega(decorations: Parameters<typeof specWith>[0]): Promise<string> {

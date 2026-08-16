@@ -50,5 +50,7 @@
     "color"             : {"key": "species", "type": "categorical", "scheme": "schemeSet1"},
     "size"              : {"type": "max", "isShared": false},
     "isColorScaleShared": true
-  }
+  },
+  "labels" : false,
+  "legend" : true
 }

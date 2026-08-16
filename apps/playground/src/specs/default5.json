@@ -12,5 +12,7 @@
     },
     {"subgroup": {"type": "flatten"}, "aspect_ratio": "maxfill", "size": {"isShared": false}}
   ],
-  "mark"   : {"shape": "rect", "color": {"key": "survived_text", "type": "categorical"}}
+  "mark"   : {"shape": "rect", "color": {"key": "survived_text", "type": "categorical"}},
+  "labels" : false,
+  "legend" : true
 }

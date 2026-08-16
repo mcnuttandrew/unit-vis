@@ -6,5 +6,7 @@
     {"subgroup": {"type": "bin",     "key": "age",    "numBin": 10}, "aspect_ratio": "fillY"  },
     {"subgroup": {"type": "flatten"                               }, "aspect_ratio": "maxfill"}
   ],
-  "mark"   : {"color": {"key": "survived_text", "type": "categorical"}}
+  "mark"   : {"color": {"key": "survived_text", "type": "categorical"}},
+  "labels" : false,
+  "legend" : true
 }
