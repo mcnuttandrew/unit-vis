@@ -1,0 +1,66 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title"  : "Fertility by year",
+  "data"   : {"url": "data/countries.json"},
+  "width"  : 900,
+  "height" : 340,
+  "padding": {"top": 5, "left": 5, "bottom": 5, "right": 5},
+  "layouts": [
+    {
+      "name"        : "year",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "groupby", "key": "year", "isShared": false},
+      "aspect_ratio": "fillX",
+      "size"        : {"type": "uniform", "isShared": true},
+      "direction"   : "LRBT",
+      "align"       : "LB",
+      "margin"      : {"top": 3, "left": 3, "bottom": 3, "right": 3},
+      "padding"     : {"top": 3, "left": 3, "bottom": 3, "right": 3},
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.3},
+      "sort"        : {"key": "year", "type": "numerical", "direction": "ascending"}
+    },
+    {
+      "name"        : "fertility_bin",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "bin", "key": "fertility", "numBin": 10, "isShared": true},
+      "aspect_ratio": "fillY",
+      "size"        : {"type": "uniform", "isShared": true},
+      "direction"   : "BT",
+      "align"       : "bottom",
+      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.4},
+      "sort"        : {"key": "fertility", "type": "numerical", "direction": "ascending"}
+    },
+    {
+      "name"        : "spread",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "passthrough", "isShared": true},
+      "aspect_ratio": "fillX",
+      "size"        : {"type": "count", "isShared": true},
+      "direction"   : "LR",
+      "align"       : "center",
+      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "box"         : {"fill": "none", "stroke": "gray", "stroke-width": 0, "opacity": 0.2}
+    },
+    {
+      "name"        : "observations",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "flatten"},
+      "aspect_ratio": "maxfill",
+      "size"        : {"type": "uniform", "isShared": false},
+      "direction"   : "LRBT",
+      "align"       : "LB",
+      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "sort"        : {"key": "life_expect", "type": "numerical", "direction": "ascending"}
+    }
+  ],
+  "mark"   : {
+    "shape"             : "circle",
+    "color"             : {"key": "year", "type": "categorical", "scheme": "schemeCategory10"},
+    "size"              : {"type": "max", "isShared": false},
+    "isColorScaleShared": true
+  }
+}

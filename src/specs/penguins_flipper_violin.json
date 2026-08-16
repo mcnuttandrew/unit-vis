@@ -1,0 +1,66 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title"  : "Flipper length by species",
+  "data"   : {"url": "data/penguins.csv"},
+  "width"  : 720,
+  "height" : 400,
+  "padding": {"top": 5, "left": 5, "bottom": 5, "right": 5},
+  "layouts": [
+    {
+      "name"        : "species",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "groupby", "key": "species", "isShared": false},
+      "aspect_ratio": "fillX",
+      "size"        : {"type": "uniform", "isShared": true},
+      "direction"   : "LRBT",
+      "align"       : "LB",
+      "margin"      : {"top": 5, "left": 5, "bottom": 5, "right": 5},
+      "padding"     : {"top": 5, "left": 5, "bottom": 5, "right": 5},
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.3},
+      "sort"        : {"key": "species", "type": "categorical", "direction": "ascending"}
+    },
+    {
+      "name"        : "flipper_bin",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "bin", "key": "flipper_length_mm", "numBin": 16, "isShared": true},
+      "aspect_ratio": "fillY",
+      "size"        : {"type": "uniform", "isShared": true},
+      "direction"   : "BT",
+      "align"       : "bottom",
+      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.4},
+      "sort"        : {"key": "flipper_length_mm", "type": "numerical", "direction": "ascending"}
+    },
+    {
+      "name"        : "spread",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "passthrough", "isShared": true},
+      "aspect_ratio": "fillX",
+      "size"        : {"type": "count", "isShared": true},
+      "direction"   : "LR",
+      "align"       : "center",
+      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "box"         : {"fill": "none", "stroke": "gray", "stroke-width": 0, "opacity": 0.2}
+    },
+    {
+      "name"        : "penguins",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "flatten"},
+      "aspect_ratio": "maxfill",
+      "size"        : {"type": "uniform", "isShared": false},
+      "direction"   : "LRBT",
+      "align"       : "LB",
+      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "sort"        : {"key": "sex", "type": "categorical", "direction": "ascending"}
+    }
+  ],
+  "mark"   : {
+    "shape"             : "circle",
+    "color"             : {"key": "species", "type": "categorical", "scheme": "schemeSet2"},
+    "size"              : {"type": "max", "isShared": false},
+    "isColorScaleShared": true
+  }
+}

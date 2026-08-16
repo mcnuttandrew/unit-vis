@@ -1,0 +1,181 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Quicksand', sans-serif;
+}
+
+#root,
+.appbody {
+  height: 100%;
+  width: 100%;
+}
+
+.appbody {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-down {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: black;
+  color: white;
+  padding: 5px 20px;
+  margin: 0;
+}
+
+.header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+/* The header is a fixed-height band; the panes below it split whatever
+   remains, which is what lets the editor and chart columns scroll
+   independently instead of growing the page. */
+.main-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.left-column {
+  position: relative;
+  width: 1300px;
+  min-width: 300px;
+  border-right: 1px solid #ddd;
+}
+
+.default-chooser {
+  background: lightgray;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* height: 100px; */
+  padding: 20px 0;
+  flex-shrink: 0;
+}
+
+.editor-host {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* CodeMirror only fills its host if it is told to; without this the editor
+   collapses to the height of its content. */
+.editor-host .cm-editor {
+  height: 100%;
+}
+
+.editor-host .cm-scroller {
+  overflow: auto;
+  font-size: 13px;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.chart-panel-controls {
+  align-items: center;
+  flex-direction: row-reverse;
+  display: flex;
+  height: 50px;
+  padding-right: 30px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.chart-option {
+  cursor: pointer;
+  margin-right: 20px;
+}
+
+.selected-chart-option {
+  text-decoration: underline;
+}
+
+.chart-container {
+  gap: 20px;
+  padding: 20px;
+}
+
+.chart-container > .flex-down > span {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.about-container {
+  padding: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.about-container p {
+  max-width: 600px;
+}
+
+select {
+  background-color: rgba(0, 0, 0, 0);
+  border: 0;
+  color: #444;
+  display: flex;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+  text-align-last: right;
+  width: 100%;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+select:focus {
+  border-color: #aaa;
+  color: #222;
+  outline: none;
+}
+
+select option {
+  font-weight: normal;
+  text-transform: none;
+}
+
+/* Overlays the editor rather than displacing it, so a transient parse error
+   mid-keystroke does not make the whole editor jump. */
+.error-bar {
+  background: red;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  min-height: 50px;
+  padding: 5px 20px;
+  box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}

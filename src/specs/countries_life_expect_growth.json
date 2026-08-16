@@ -1,0 +1,53 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title"  : "Summed life expectancy by year",
+  "data"   : {"url": "data/countries.json"},
+  "width"  : 800,
+  "height" : 360,
+  "padding": {"top": 10, "left": 10, "bottom": 10, "right": 10},
+  "layouts": [
+    {
+      "name"        : "year",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "groupby", "key": "year", "isShared": false},
+      "aspect_ratio": "fillX",
+      "size"        : {"type": "uniform", "isShared": true},
+      "direction"   : "LRBT",
+      "align"       : "LB",
+      "margin"      : {"top": 3, "left": 3, "bottom": 3, "right": 3},
+      "padding"     : {"top": 3, "left": 3, "bottom": 3, "right": 3},
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.3},
+      "sort"        : {"key": "year", "type": "numerical", "direction": "ascending"}
+    },
+    {
+      "name"        : "total_life_expect",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "passthrough", "isShared": true},
+      "aspect_ratio": "fillY",
+      "size"        : {"type": "sum", "key": "life_expect", "isShared": true},
+      "direction"   : "BT",
+      "align"       : "bottom",
+      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.4}
+    },
+    {
+      "name"        : "countries",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "flatten"},
+      "aspect_ratio": "maxfill",
+      "size"        : {"type": "uniform", "isShared": false},
+      "direction"   : "BTLR",
+      "align"       : "LB",
+      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
+      "sort"        : {"key": "life_expect", "type": "numerical", "direction": "descending"}
+    }
+  ],
+  "mark"   : {
+    "shape"             : "rect",
+    "color"             : {"key": "year", "type": "categorical", "scheme": "schemeSet3"},
+    "size"              : {"type": "max", "isShared": false},
+    "isColorScaleShared": true
+  }
+}
