@@ -36,9 +36,13 @@ export const KNOWN_DIFFERENCES: KnownDifference[] = [
 ];
 
 /**
- * Specs the *layout engine* cannot process at all, before either backend is
- * reached. Listed here so a backend regression is never confused with one of
- * these pre-existing crashes.
+ * Specs the *JS layout engine* cannot process at all, so the d3 backend never
+ * gets a tree to draw. Listed here so a backend regression is never confused
+ * with one of these pre-existing crashes.
+ *
+ * The vega backend lays these out itself and renders them fine; they stay
+ * excluded because parity needs both sides, and there is no tree to be the
+ * other one.
  */
 export const KNOWN_LAYOUT_FAILURES: {[spec: string]: string} = {
   unit_small_multiple: 'layout.ts `getMinAmongContainers` reduces an empty container list with no initial value.',

@@ -13,14 +13,18 @@ yarn report:svg --rows 40 # explicit sample size
 
 ## How it works
 
-`@unit-vis/core` exports `buildScene`, which runs defaults → data → layout and
-returns the container tree. Both backends draw from that *same* tree, so
-anything the comparison sees is a drawing difference, never a layout difference.
-The suite imports the packages by name (`unit-vis`, `unit-vis-vega`) and vitest
-resolves those to their sources, so it can never pass against a stale build.
+The two backends no longer share a layout, and holding them to each other is the
+point of this suite. `@unit-vis/core` exports `buildScene`, which runs defaults →
+data → layout in JS and returns a container tree; the d3 backend draws that.
+The vega backend compiles the same spec into a dataflow that lays itself out
+(`unit-vis-vega/src/layout.ts`) and never sees the tree. So a difference here can
+be a layout difference *or* a drawing one — which is what makes these tests the
+specification the compiler is written against. The suite imports the packages by
+name (`unit-vis`, `unit-vis-vega`) and vitest resolves those to their sources, so
+it can never pass against a stale build.
 
 - `harness/render.ts` — loads a spec's CSV off disk (through the library's own
-  `parseCsv`, the same one it uses at runtime), builds the scene, and draws it:
+  `parseCsv`, the same one it uses at runtime) and draws it both ways:
   - `renderOld` → `drawUnit` → d3-selection → jsdom document
   - `renderVegaEmbedded` → `drawUnitVega` → a live `vega.View` mounted in the
     jsdom document (the real browser path)
@@ -69,8 +73,10 @@ in `buildVegaSpec`. **Renaming those marks will break the harness** — update
 `harness/known-differences.ts` is the list of checks that do not pass yet, each
 with a reason. It is verified in both directions: if a listed difference stops
 reproducing, the suite fails and tells you to delete the entry, so the list
-cannot go stale. `KNOWN_LAYOUT_FAILURES` does the same for specs the layout
-engine cannot process at all, which would otherwise look like backend bugs.
+cannot go stale. `KNOWN_LAYOUT_FAILURES` does the same for specs the *JS* layout
+engine cannot process at all, which would otherwise look like backend bugs —
+those specs have no container tree, so there is nothing to compare the vega
+backend's own layout against, even where it renders them happily.
 
 Tolerances: vega serializes path coordinates to three decimals, so identical
 geometry differs in the fourth. Positions and sizes are compared at 0.5px, and

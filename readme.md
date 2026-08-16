@@ -12,16 +12,21 @@ installing both of them.
 
 | path | package | what it is |
 | --- | --- | --- |
-| [packages/core/](packages/core/) | `@unit-vis/core` | The grammar, the types, and the layout engine that turns a spec into a tree of boxes. No dependencies. |
-| [packages/unit-vis/](packages/unit-vis/) | `unit-vis` | The d3 backend. Depends on `d3-selection`, `d3-scale`, `d3-scale-chromatic`. |
-| [packages/unit-vis-vega/](packages/unit-vis-vega/) | `unit-vis-vega` | The vega backend. Depends on `vega`, and nothing else. |
+| [packages/core/](packages/core/) | `@unit-vis/core` | The grammar, the types, and the JS layout engine that turns a spec into a tree of boxes. No dependencies. |
+| [packages/unit-vis/](packages/unit-vis/) | `unit-vis` | The d3 backend. Draws the container tree the JS engine builds. Depends on `d3-selection`, `d3-scale`, `d3-scale-chromatic`. |
+| [packages/unit-vis-vega/](packages/unit-vis-vega/) | `unit-vis-vega` | The vega backend. Compiles a spec into a vega dataflow that lays itself out *and* draws itself. Depends on `vega`, and nothing else. |
 | [apps/playground/](apps/playground/) | — | The demo site: a spec editor with both backends rendering side by side. |
-| [test/](test/) | — | One suite for the workspace, most of it comparing the two backends against each other. |
+| [test/](test/) | — | One suite for the workspace, most of it holding the vega compiler to the JS engine. |
 
-Both backends draw the same grammar from the same layout, so a spec renders the
-same either way. They differ in what they can draw on top of it: `labels` and
-`legend` are vega-only. Pick `unit-vis-vega` unless you have a reason to want
-the d3 one.
+The two backends take different routes to the same picture. The d3 one draws the
+tree `@unit-vis/core` builds in JS. The vega one compiles `spec.layouts` into one
+dataflow stage per level and lets vega do the subdividing, sizing and
+positioning — so nothing but the rows crosses into vega, and the vega spec it
+emits is the entire chart. They are held to the same output spec for spec by
+[test/backend-parity.test.ts](test/backend-parity.test.ts).
+
+They differ in what they can draw on top of it: `labels` and `legend` are
+vega-only. Pick `unit-vis-vega` unless you have a reason to want the d3 one.
 
 ## Usage
 
@@ -41,6 +46,33 @@ And that's it! The call resolves once the chart is on the page -- data named by
 `data.url` is fetched first -- and the vega backend hands back the live
 [vega `View`](https://vega.github.io/vega/docs/api/view/), so you can drive the
 chart after the fact or export it with `view.toImageURL('png')`.
+
+### The compiled vega spec
+
+Because the vega backend computes the layout in vega rather than ahead of it,
+the spec it builds is self-contained. `buildVegaSpec` hands you that spec, and
+nothing about it points back at this library:
+
+```js
+import {applyDefault, buildVegaSpec, isPortable} from 'unit-vis-vega';
+
+applyDefault(spec);                             // fills in the grammar's defaults
+const vegaSpec = buildVegaSpec(spec, rows);     // a complete vega spec
+JSON.stringify(vegaSpec);                       // paste into the Vega Editor
+```
+
+So a unit chart can be embedded with `vega-embed`, rendered server-side by the
+vega CLI, or handed to anything else that speaks vega. Being a live dataflow
+also means it recomputes incrementally: change a signal, push new data through
+`view.change`, or insert a `filter` transform ahead of the layout, and vega
+re-lays out only what moved.
+
+One case is not portable. A `maxfill` level with a `sum`/`count` size is a
+squarified treemap, which is a sequential algorithm rather than a reduction, so
+it is registered as a custom vega transform (see
+[treemap-transform.ts](packages/unit-vis-vega/src/treemap-transform.ts)) and
+only runs where this package has been loaded. `isPortable(spec)` tells you which
+kind of spec you have.
 
 Now you might want to embed this library in a react component, perfectly normal thing to want to do. You can do that via
 
@@ -63,7 +95,9 @@ export default function ExampleComponent() {
 ```
 
 Both packages re-export everything in `@unit-vis/core`, so the `Spec` type and
-the layout engine come along with whichever backend you installed:
+the JS layout engine come along with whichever backend you installed. The vega
+backend does not use `buildScene` itself, but it is there if you want the boxes
+as data:
 
 ```ts
 import UnitVis, {buildScene, type Spec} from 'unit-vis-vega';

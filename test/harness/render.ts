@@ -1,6 +1,12 @@
 /**
- * Drives both drawing backends against the same layout, inside jsdom, and hands
+ * Drives both backends against the same spec and rows, inside jsdom, and hands
  * back the SVG each one produced.
+ *
+ * The two no longer share a layout: the d3 backend draws the container tree the
+ * JS engine builds, while the vega backend compiles the spec into a dataflow
+ * that lays itself out. So a difference here can be either a layout difference
+ * or a drawing one, and the parity suite is what holds the compiler to the
+ * engine.
  */
 import {readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
@@ -39,9 +45,9 @@ export interface Scene {
 }
 
 /**
- * Run the shared front half of the pipeline: defaults, data load, layout. Both
- * backends draw from this one container tree, so any difference in their output
- * is a drawing difference rather than a layout difference.
+ * Run the front half of the pipeline: defaults, data load, and the JS layout the
+ * d3 backend draws from. The vega backend uses only `spec` and `data` off this,
+ * and lays the chart out itself.
  */
 export function buildSceneForSpec(rawSpec: Spec, sampleSize?: number): Scene {
   const spec = JSON.parse(JSON.stringify(rawSpec)) as Spec;
@@ -86,7 +92,7 @@ export function renderOld(scene: Scene, id = 'old-target'): string {
  */
 export async function renderVegaEmbedded(scene: Scene, id = 'vega-target'): Promise<string> {
   const target = makeTarget(id);
-  await drawUnitVega(scene.rootContainer, scene.spec, id);
+  await drawUnitVega(scene.spec, scene.data, id);
   return serialize(target);
 }
 
@@ -96,7 +102,7 @@ export async function renderVegaEmbedded(scene: Scene, id = 'vega-target'): Prom
  * document — handy for the geometry comparisons and much faster in bulk.
  */
 export async function renderVegaHeadless(scene: Scene): Promise<string> {
-  const vegaSpec = buildVegaSpec(scene.rootContainer, scene.spec);
+  const vegaSpec = buildVegaSpec(scene.spec, scene.data);
   const view = new vega.View(vega.parse(vegaSpec as vega.Spec), {renderer: 'none'});
   try {
     return await view.toSVG();
@@ -123,7 +129,7 @@ export async function collectVegaLogs(scene: Scene): Promise<{warnings: string[]
     debug: () => logger,
   } as unknown as vega.LoggerInterface;
 
-  const vegaSpec = buildVegaSpec(scene.rootContainer, scene.spec);
+  const vegaSpec = buildVegaSpec(scene.spec, scene.data);
   const view = new vega.View(vega.parse(vegaSpec as vega.Spec), {renderer: 'none', logger});
   try {
     await view.runAsync();

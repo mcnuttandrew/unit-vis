@@ -58,7 +58,7 @@ describe('by default', () => {
 
   it('leaves the vega spec exactly as it was before the options existed', () => {
     const scene = buildSceneForSpec(specWith({}));
-    const vegaSpec = buildVegaSpec(scene.rootContainer, scene.spec) as Record<string, unknown>;
+    const vegaSpec = buildVegaSpec(scene.spec, scene.data) as Record<string, unknown>;
     expect(vegaSpec.autosize).toEqual({type: 'none'});
     expect(vegaSpec.legends).toBeUndefined();
     expect((vegaSpec.marks as {name: string}[]).map(m => m.name)).toEqual([
@@ -173,7 +173,7 @@ describe('legend', () => {
     const spec = specWith({legend: true});
     delete (spec.mark!.color as {key?: string}).key;
     const scene = buildSceneForSpec(spec);
-    const vegaSpec = buildVegaSpec(scene.rootContainer, scene.spec) as Record<string, unknown>;
+    const vegaSpec = buildVegaSpec(scene.spec, scene.data) as Record<string, unknown>;
     expect(vegaSpec.legends).toBeUndefined();
   });
 });

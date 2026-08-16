@@ -8,26 +8,28 @@ import type {
 } from "vega";
 import { defaultSetting } from "@unit-vis/core";
 
-import type { Container, Labels, Legend, Mark, Spec } from "@unit-vis/core";
+import type { DataRow, Labels, Legend, Mark, Spec } from "@unit-vis/core";
+import { ROWS_BY_ID, buildLayoutData, levelName } from "./layout.js";
 
 /**
- * The layout engine hands us a container tree whose depth is one level per
- * entry in `spec.layouts`. Every node carries a `visualspace` whose
- * `posX`/`posY` are relative to its parent, and the deepest containers hold a
- * single data row apiece.
+ * Everything but the rows is computed inside vega.
  *
- * Rather than walking that tree in JS and shipping a flat list of pre-baked
- * pixel positions, we hand vega the tree itself and let the dataflow do the
- * work:
+ * `layout.ts` compiles `spec.layouts` into one `data` stage per level, so this
+ * module never sees a container tree -- it reads the datasets that compiler
+ * emits and decides what to draw from them:
  *
- *   - one `flatten` per layout level descends the tree,
- *   - `formula` accumulates each parent offset into an absolute position,
- *   - `filter` splits every level into "still a container" (draw a box) and
- *     "holds a datum" (draw a unit mark),
+ *   - `level${d}` holds one tuple per container at depth `d`, already carrying
+ *     absolute `absX`/`absY`/`width`/`height`,
+ *   - boxes are the union of every level, styled by `lookup` against the layout
+ *     list,
+ *   - unit marks are the deepest level, one per container that holds rows,
  *   - `joinaggregate` implements the shared mark-size policy,
- *   - `lookup` against the layout list resolves per-level box styling,
  *   - signals carry the mark policy, so shape/size/color are encoding-time
  *     decisions rather than spec-construction-time branches.
+ *
+ * The upshot is that the emitted spec is the whole chart: it serializes, it
+ * re-runs incrementally when a signal changes, and a transform inserted ahead of
+ * the layout reshapes it without a round trip through JS.
  */
 
 /**
@@ -102,107 +104,21 @@ function resolveLegend(spec: Spec): ResolvedLegend | null {
   };
 }
 
-/** A node whose children are containers, so it renders as a layout box. */
-const HAS_CONTAINER_CHILDREN =
-  "datum.contents && length(datum.contents) >= 1 && datum.contents[0].visualspace";
-
-/** A node that bottoms out in a data row, so it renders as a unit mark. */
-const HAS_DATUM_CHILD =
-  "datum.contents && length(datum.contents) >= 1 && !datum.contents[0].visualspace";
-
-/**
- * Descends one level of the container tree.
- *
- * `flatten` copies the parent tuple's fields onto each child, so `datum.absX`
- * still holds the parent's absolute position when the offset formulas run.
- * `project` then drops the container's cyclic `parent`/`layout`
- * back-references before we rebuild the fields we care about off the child.
- */
-function descendLevel(depth: number): VegaData {
-  return {
-    name: `level${depth}`,
-    source: `level${depth - 1}_boxes`,
-    transform: [
-      { type: "flatten", fields: ["contents"], as: ["node"] },
-      {
-        type: "project",
-        fields: ["absX", "absY", "node"],
-        as: ["parentX", "parentY", "node"],
-      },
-      {
-        type: "formula",
-        as: "absX",
-        expr: "datum.parentX + datum.node.visualspace.posX",
-      },
-      {
-        type: "formula",
-        as: "absY",
-        expr: "datum.parentY + datum.node.visualspace.posY",
-      },
-      { type: "formula", as: "width", expr: "datum.node.visualspace.width" },
-      { type: "formula", as: "height", expr: "datum.node.visualspace.height" },
-      { type: "formula", as: "contents", expr: "datum.node.contents" },
-      // The group this container holds -- the groupby value, the bin range --
-      // which is what the label marks print.
-      { type: "formula", as: "label", expr: "datum.node.label" },
-      { type: "formula", as: "depth", expr: `${depth}` },
-    ],
-  };
-}
-
-/** Splits a level into the nodes that draw boxes and the ones that draw marks. */
-function partitionLevel(depth: number): VegaData[] {
-  return [
-    {
-      name: `level${depth}_boxes`,
-      source: `level${depth}`,
-      transform: [{ type: "filter", expr: HAS_CONTAINER_CHILDREN }],
-    },
-    {
-      name: `level${depth}_leaves`,
-      source: `level${depth}`,
-      transform: [{ type: "filter", expr: HAS_DATUM_CHILD }],
-    },
-  ];
-}
-
 function buildData(
-  rootContainer: Container,
   spec: Spec,
+  rows: DataRow[],
   labels: ResolvedLabels | null,
 ): VegaData[] {
   const numLayouts = spec.layouts.length;
 
-  // Depth 0 is the root container itself. Project first so its cyclic
-  // `parent`/`layout` fields never reach the rest of the dataflow.
-  const data: VegaData[] = [
-    {
-      name: "level0",
-      values: [rootContainer],
-      transform: [
-        {
-          type: "project",
-          fields: ["visualspace", "contents"],
-          as: ["visualspace", "contents"],
-        },
-        { type: "formula", as: "absX", expr: "datum.visualspace.posX" },
-        { type: "formula", as: "absY", expr: "datum.visualspace.posY" },
-        { type: "formula", as: "width", expr: "datum.visualspace.width" },
-        { type: "formula", as: "height", expr: "datum.visualspace.height" },
-        { type: "formula", as: "depth", expr: "0" },
-      ],
-    },
-    ...partitionLevel(0),
-  ];
+  // The layout itself: one stage per level of `spec.layouts`, ending in a
+  // `level${d}` dataset of containers per level.
+  const data: VegaData[] = buildLayoutData(spec, rows);
 
-  for (let depth = 1; depth <= numLayouts; depth++) {
-    data.push(descendLevel(depth), ...partitionLevel(depth));
-  }
-
-  // The drawing surface, read off the root container rather than off the spec.
+  // The drawing surface, read off the canvas container rather than off the spec.
   data.push({
     name: "rootBounds",
-    source: "level0",
+    source: levelName(0),
     transform: [
       { type: "formula", as: "x0", expr: "datum.absX" },
       { type: "formula", as: "x1", expr: "datum.absX + datum.width" },
@@ -250,7 +166,7 @@ function buildData(
   // `spec.layouts[n - 1]`.
   const boxSources: string[] = [];
   for (let depth = 1; depth <= numLayouts; depth++) {
-    boxSources.push(`level${depth}`);
+    boxSources.push(levelName(depth));
   }
   data.push({
     name: "boxes",
@@ -267,16 +183,24 @@ function buildData(
     ],
   });
 
-  // Unit marks: whichever level each branch of the tree bottoms out at.
-  const leafSources: string[] = [];
-  for (let depth = 0; depth <= numLayouts; depth++) {
-    leafSources.push(`level${depth}_leaves`);
-  }
+  // Unit marks: one per container of the deepest level that holds any rows.
+  // A container the layout made but no row landed in -- an empty bin, a
+  // category absent from this small multiple -- takes its space and draws its
+  // box, but has nothing to draw a mark for.
   data.push({
     name: "units",
-    source: leafSources,
+    source: levelName(numLayouts),
     transform: [
-      { type: "formula", as: "row", expr: "datum.contents[0]" },
+      { type: "filter", expr: "datum.cnt > 0" },
+      // The mark stands for the container, and reads its encoding off the first
+      // row in it -- which is every row, when the last level is a `flatten`.
+      {
+        type: "lookup",
+        from: ROWS_BY_ID,
+        key: "id",
+        fields: ["firstId"],
+        as: ["row"],
+      },
       { type: "formula", as: "cx", expr: "datum.absX + datum.width / 2" },
       { type: "formula", as: "cy", expr: "datum.absY + datum.height / 2" },
       {
@@ -311,7 +235,7 @@ function buildData(
   if (labels) {
     data.push({
       name: "containerLabels",
-      source: labels.depths.map((depth) => `level${depth}`),
+      source: labels.depths.map(levelName),
     });
   }
 
@@ -424,7 +348,17 @@ function buildLegend(legend: ResolvedLegend): VegaLegend {
   } as VegaLegend;
 }
 
-export function buildVegaSpec(container: Container, spec: Spec): VegaSpec {
+/**
+ * Compile a spec and its rows into a vega spec that computes its own layout.
+ *
+ * `spec` should have been through `applyDefault` -- the layout reads the
+ * defaults it fills in. The result is complete: `vega.parse` it and the chart
+ * lays itself out.
+ *
+ * The output uses stock vega transforms, and so runs anywhere vega does, unless
+ * the spec has a weighted `maxfill` level. See `isPortable`.
+ */
+export function buildVegaSpec(spec: Spec, rows: DataRow[]): VegaSpec {
   const labels = resolveLabels(spec);
   const legend = resolveLegend(spec);
   const decorated = Boolean(labels || legend);
@@ -432,9 +366,9 @@ export function buildVegaSpec(container: Container, spec: Spec): VegaSpec {
   return {
     width: spec.width,
     height: spec.height,
-    // The layout engine already sized the canvas, and the d3 backend draws into
-    // exactly that box. Without this vega would re-pad around the mark bounds
-    // and shift everything whenever a stroke or a mark spills over the edge.
+    // The layout sizes the canvas itself, and the d3 backend draws into exactly
+    // that box. Without this vega would re-pad around the mark bounds and shift
+    // everything whenever a stroke or a mark spills over the edge.
     //
     // Decorations sit outside that box by construction, so a decorated chart
     // pads instead: the plot area is still exactly `spec.width` by
@@ -443,7 +377,7 @@ export function buildVegaSpec(container: Container, spec: Spec): VegaSpec {
     padding: 0,
     autosize: decorated ? { type: "pad", resize: false } : { type: "none" },
     signals: buildSignals(spec, labels),
-    data: buildData(container, spec, labels),
+    data: buildData(spec, rows, labels),
     ...(legend ? { legends: [buildLegend(legend)] } : {}),
     scales: [
       {
@@ -532,26 +466,43 @@ export function buildVegaSpec(container: Container, spec: Spec): VegaSpec {
 }
 
 /**
+ * Whether `buildVegaSpec` will emit a spec a bare vega runtime can run.
+ *
+ * A weighted `maxfill` level is a squarified treemap, which is the one part of
+ * the grammar that needs a transform vega does not ship -- see
+ * `treemap-transform.ts`. Everything else compiles to stock transforms, so the
+ * emitted spec can be handed to the Vega Editor, `vega-embed`, or the vega CLI
+ * as it stands.
+ */
+export function isPortable(spec: Spec): boolean {
+  return !spec.layouts.some(
+    (layout) =>
+      layout.aspect_ratio === "maxfill" &&
+      Boolean(layout.size) &&
+      Boolean(layout.size!.type) &&
+      layout.size!.type !== "uniform",
+  );
+}
+
+/**
  * Mounts the chart in the element with id `divId` and returns the live view.
  *
  * This drives vega's `View` directly rather than going through `vega-embed`,
  * which is what keeps this package's dependency list to vega alone. What
  * vega-embed would have added on top is an actions menu; the view it hands back
  * can still render itself to an image (`view.toImageURL`), which is what that
- * menu's useful entry did. Its spec-viewing entries could never work here
- * anyway, since the container tree it is built from is cyclic and would not
- * serialize.
+ * menu's useful entry did.
  */
 export default async function drawUnitVega(
-  container: Container,
   spec: Spec,
+  rows: DataRow[],
   divId: string,
 ): Promise<View> {
   const target = document.getElementById(divId);
   if (!target) {
     throw new Error(`No element with id "${divId}" to draw into.`);
   }
-  const view = new View(parse(buildVegaSpec(container, spec)), {
+  const view = new View(parse(buildVegaSpec(spec, rows)), {
     renderer: "svg",
     container: target,
     // Marks carry a `tooltip` encoding, and without hover processing nothing

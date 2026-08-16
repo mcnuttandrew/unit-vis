@@ -12,6 +12,7 @@ export {buildScene, loadScene} from './scene.js';
 export type {Scene} from './scene.js';
 export {buildRootContainer, getSharingDomain, makeContainers} from './container.js';
 export {applyLayout, buildLayoutList} from './layout.js';
+export {default as treemapMultidimensional} from './treemap.js';
 export {fetchData, parseCsv, parseCsvRows} from './data.js';
 export {asRow, isContainer} from './utils.js';
 export {min} from './array.js';
