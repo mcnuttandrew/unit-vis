@@ -2,3 +2,4 @@ dist/
 node_modules/
 # harness output
 test/__output__/
+.DS_Store

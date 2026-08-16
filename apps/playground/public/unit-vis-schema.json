@@ -1,0 +1,739 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Padding": {
+      "description": "Space reserved *inside* a box, in pixels. Content laid out within the box is\ninset by these amounts on each side.\n\nContrast with a layout's `margin`, which is space reserved *outside* each\ncontainer it produces.",
+      "type": "object",
+      "properties": {
+        "top": {
+          "description": "Pixels of inset along the top edge.",
+          "type": "number"
+        },
+        "left": {
+          "description": "Pixels of inset along the left edge.",
+          "type": "number"
+        },
+        "right": {
+          "description": "Pixels of inset along the right edge.",
+          "type": "number"
+        },
+        "bottom": {
+          "description": "Pixels of inset along the bottom edge.",
+          "type": "number"
+        }
+      }
+    },
+    "SizePolicies": {
+      "description": "How big a unit mark is drawn inside the container the layout gave it.\n\nOnly `max` is implemented: it inscribes the mark in its container. The other\nvalues fall through to a radius of 0, which draws nothing — they are\nplaceholders for size policies the paper describes but this library does not\nimplement yet. Use `max` unless you want the marks hidden.",
+      "enum": [
+        "count",
+        "max",
+        "sum",
+        "uniform"
+      ],
+      "type": "string"
+    },
+    "Schemes": {
+      "description": "A categorical color palette, named the way d3-scale-chromatic names them.\n\nThe vega backend translates these to its own scheme names, so the same value\nworks on both backends.\n\n- `schemeCategory10` — 10 colors, the general-purpose default\n- `schemeTableau10` — 10 colors, Tableau's palette\n- `schemeAccent`, `schemeDark2`, `schemeSet1`, `schemeSet2`, `schemeSet3` —\n  8-12 saturated colors, good for marks on a light background\n- `schemePaired` — 12 colors in light/dark pairs, for nested categories\n- `schemePastel1`, `schemePastel2` — muted, good for large filled areas",
+      "default": "schemeCategory10",
+      "enum": [
+        "schemeAccent",
+        "schemeCategory10",
+        "schemeDark2",
+        "schemePaired",
+        "schemePastel1",
+        "schemePastel2",
+        "schemeSet1",
+        "schemeSet2",
+        "schemeSet3",
+        "schemeTableau10"
+      ],
+      "type": "string"
+    },
+    "Mark": {
+      "description": "How each data row is drawn once the layouts have decided where it goes.\n\nThe layouts own position and space; the mark owns shape, size within that\nspace, and color. One mark is drawn per row, in the deepest container that\nrow lands in.",
+      "type": "object",
+      "properties": {
+        "color": {
+          "description": "Color policy for the unit marks. Marks are colored by looking up\n`color.key` on each row and running it through an ordinal scale.",
+          "type": "object",
+          "properties": {
+            "key": {
+              "description": "The data field to color by. Every distinct value of this field gets its\nown color from `scheme`, in first-seen order.\n\nThis is also the field `spec.legend` explains, and a legend is only\ndrawn when this is set.",
+              "type": "string"
+            },
+            "type": {
+              "description": "The kind of scale to build over `color.key`. Only `categorical` is\nimplemented — values are treated as discrete regardless of whether they\nlook numeric.",
+              "type": "string",
+              "const": "categorical"
+            },
+            "scheme": {
+              "$ref": "#/definitions/Schemes",
+              "description": "The categorical palette used for `color.key`.",
+              "default": "schemeCategory10"
+            },
+            "isShared": {
+              "description": "Reserved. Read by neither backend today; the color scale is always built\nacross the whole chart.",
+              "type": "boolean"
+            }
+          }
+        },
+        "size": {
+          "description": "How large the mark is drawn inside its container. Only affects `circle`\nmarks — a `rect` mark always fills its container exactly.",
+          "type": "object",
+          "properties": {
+            "isShared": {
+              "description": "When true, every circle in the chart is drawn at the radius of the\nsmallest one, so mark area never encodes anything accidentally. When\nfalse, each circle is sized against its own container, so marks in\nroomier containers come out bigger.",
+              "default": false,
+              "type": "boolean"
+            },
+            "type": {
+              "$ref": "#/definitions/SizePolicies",
+              "description": "The sizing rule. Use `max`, which inscribes the circle in its container\n(radius = half the container's shorter side). The other values are\nunimplemented and render a radius of 0, i.e. invisible marks.",
+              "default": "max"
+            }
+          }
+        },
+        "shape": {
+          "description": "The shape drawn per row.\n\n- `circle` — inscribed in its container, sized by `mark.size`\n- `rect` — fills its container exactly, ignoring `mark.size`",
+          "default": "circle",
+          "enum": [
+            "circle",
+            "rect"
+          ],
+          "type": "string"
+        },
+        "isColorScaleShared": {
+          "description": "Reserved. Present in most bundled example specs and in the library\ndefaults, but read by neither backend.",
+          "type": "boolean"
+        }
+      }
+    },
+    "Labels": {
+      "description": "Text drawn next to each layout container, reading the container's own label:\nthe group value for a `groupby` subgroup, the `low-high` range for a `bin`\none. This is how a unit chart gets its axis-like annotations — the grammar\nhas no axes, only labelled containers.\n\nVega backend only. The old (d3) backend ignores it.",
+      "type": "object",
+      "properties": {
+        "orient": {
+          "description": "Which side of the container box the text sits on. `left`/`right` place it\noutside the vertical edges, `top`/`bottom` outside the horizontal ones.",
+          "default": "bottom",
+          "enum": [
+            "bottom",
+            "left",
+            "right",
+            "top"
+          ],
+          "type": "string"
+        },
+        "layouts": {
+          "description": "Restrict labelling to specific layout levels, by `layout.name`. A layout\nwith no `name` can never be selected this way.\n\nLeft unset, every layout that actually names its groups gets labelled,\nwhich means every `groupby` and every `bin` subgroup. `flatten` levels are\nskipped by default because their labels are row indices.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "offset": {
+          "description": "Gap in pixels between the container edge and the text.",
+          "default": 4,
+          "type": "number"
+        },
+        "fontSize": {
+          "description": "Type size of the label text, in pixels.",
+          "default": 10,
+          "type": "number"
+        },
+        "color": {
+          "description": "CSS color for the label text.",
+          "default": "#333333",
+          "type": "string"
+        }
+      }
+    },
+    "Legend": {
+      "description": "A color legend for the key the marks are colored by. Swatches take the shape\nof the marks they stand for.\n\nRequires `mark.color.key` — with nothing to explain, no legend is drawn.\n\nVega backend only. The old (d3) backend ignores it.",
+      "type": "object",
+      "properties": {
+        "orient": {
+          "description": "Where the legend sits relative to the plotting area. The corner values\nplace it inside the chart; the side values place it outside, growing the\nrendered svg rather than shrinking the chart.",
+          "default": "right",
+          "enum": [
+            "bottom",
+            "bottom-left",
+            "bottom-right",
+            "left",
+            "right",
+            "top",
+            "top-left",
+            "top-right"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "description": "Heading above the swatches.",
+          "default": "the value of `mark.color.key`",
+          "type": "string"
+        }
+      }
+    },
+    "Spec": {
+      "description": "A specification of the unit vis grammar.\n\nA unit chart is built by repeated subdivision. The whole canvas starts as one\ncontainer holding every data row. Each entry in `layouts` takes every\ncontainer from the previous level, splits its rows into subgroups, and gives\neach subgroup a box of its own — so `layouts` reads outside-in, from the\ncoarsest split down to the individual rows. The last level is normally a\n`flatten`, which gives each row its own box; `mark` then decides what gets\ndrawn in it.\n\nA stacked bar chart, a mosaic plot, a histogram of dots and a treemap are all\nthis same pipeline with different splits and different space policies.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "description": "A name for the chart. Carried through the spec but not currently rendered\nby either backend.",
+          "type": "string"
+        },
+        "data": {
+          "description": "Where the rows come from. Supply exactly one of `url` or `values`; if both\nare present `url` wins.\n\nEvery row is given an `id` field (its index) before layout, so `id` is\nalways available as a grouping key even when the source data has no\nidentifier of its own.",
+          "type": "object",
+          "properties": {
+            "url": {
+              "description": "Path or URL to the data. A `.json` extension is fetched as a JSON array\nof row objects; anything else is fetched as CSV.\n\nCSV fields arrive as strings while JSON fields keep their written types.\nThe layout engine coerces with `Number` wherever it needs a number, so\neither source works for binning and summing.",
+              "type": "string"
+            },
+            "values": {
+              "description": "Inline rows, as an array of flat objects. Use instead of `url` when the\ndata is small enough to live in the spec.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DataRow"
+              }
+            }
+          }
+        },
+        "layouts": {
+          "description": "The subdivision pipeline, applied in order, outermost split first.\n\nLevel `n` runs over every container produced by level `n - 1`. Most charts\nend with a `flatten` level so that the final containers hold one row each\nand the marks have somewhere to sit.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Layout"
+          }
+        },
+        "mark": {
+          "description": "How each row is drawn: shape, size, and color.",
+          "default": {
+            "shape": "circle",
+            "size": {
+              "type": "max",
+              "isShared": false
+            }
+          },
+          "type": "object",
+          "properties": {
+            "color": {
+              "description": "Color policy for the unit marks. Marks are colored by looking up\n`color.key` on each row and running it through an ordinal scale.",
+              "type": "object",
+              "properties": {
+                "key": {
+                  "description": "The data field to color by. Every distinct value of this field gets its\nown color from `scheme`, in first-seen order.\n\nThis is also the field `spec.legend` explains, and a legend is only\ndrawn when this is set.",
+                  "type": "string"
+                },
+                "type": {
+                  "description": "The kind of scale to build over `color.key`. Only `categorical` is\nimplemented — values are treated as discrete regardless of whether they\nlook numeric.",
+                  "type": "string",
+                  "const": "categorical"
+                },
+                "scheme": {
+                  "$ref": "#/definitions/Schemes",
+                  "description": "The categorical palette used for `color.key`.",
+                  "default": "schemeCategory10"
+                },
+                "isShared": {
+                  "description": "Reserved. Read by neither backend today; the color scale is always built\nacross the whole chart.",
+                  "type": "boolean"
+                }
+              }
+            },
+            "size": {
+              "description": "How large the mark is drawn inside its container. Only affects `circle`\nmarks — a `rect` mark always fills its container exactly.",
+              "type": "object",
+              "properties": {
+                "isShared": {
+                  "description": "When true, every circle in the chart is drawn at the radius of the\nsmallest one, so mark area never encodes anything accidentally. When\nfalse, each circle is sized against its own container, so marks in\nroomier containers come out bigger.",
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "$ref": "#/definitions/SizePolicies",
+                  "description": "The sizing rule. Use `max`, which inscribes the circle in its container\n(radius = half the container's shorter side). The other values are\nunimplemented and render a radius of 0, i.e. invisible marks.",
+                  "default": "max"
+                }
+              }
+            },
+            "shape": {
+              "description": "The shape drawn per row.\n\n- `circle` — inscribed in its container, sized by `mark.size`\n- `rect` — fills its container exactly, ignoring `mark.size`",
+              "default": "circle",
+              "enum": [
+                "circle",
+                "rect"
+              ],
+              "type": "string"
+            },
+            "isColorScaleShared": {
+              "description": "Reserved. Present in most bundled example specs and in the library\ndefaults, but read by neither backend.",
+              "type": "boolean"
+            }
+          }
+        },
+        "labels": {
+          "description": "Label each layout container with the group it holds — the `groupby` value\nor the `bin` range. Pass `true` to take the defaults, or an object to\nchoose the edge, the levels, and the type styling.\n\nDrawn by the vega backend only; the old backend ignores it.",
+          "default": false,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Labels"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "legend": {
+          "description": "Draw a legend for `mark.color.key`. Pass `true` to take the defaults, or\nan object to set placement and title. Ignored when `mark.color.key` is\nunset, since there would be nothing to explain.\n\nDrawn by the vega backend only; the old backend ignores it.",
+          "default": false,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Legend"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "height": {
+          "description": "Height of the drawing surface in pixels. Decorations (`labels`, `legend`)\nare drawn outside this box, so the rendered svg may be taller.",
+          "default": 480,
+          "type": "number"
+        },
+        "width": {
+          "description": "Width of the drawing surface in pixels. Decorations (`labels`, `legend`)\nare drawn outside this box, so the rendered svg may be wider.",
+          "default": 720,
+          "type": "number"
+        },
+        "padding": {
+          "$ref": "#/definitions/Padding",
+          "description": "Inset between the edge of the canvas and the first layout's containers.\nThis is the chart's outer gutter — where axis labels would go if the\ngrammar had axes.",
+          "default": {
+            "top": 0,
+            "left": 0,
+            "bottom": 0,
+            "right": 0
+          }
+        },
+        "$schema": {
+          "description": "URL of the schema this spec is written against. Editors use it for\ncompletion and validation; the library ignores it.",
+          "type": "string"
+        }
+      }
+    },
+    "Direction": {
+      "description": "The order in which a layout fills the space it was given.\n\nTwo-letter forms name a single axis and are for `fillX`/`fillY` layouts:\n`LR` left-to-right, `RL` right-to-left, `TB` top-to-bottom, `BT`\nbottom-to-top. `fillX` reads the horizontal sense, `fillY` the vertical one.\n\nFour-letter forms name a fill axis and then a wrap axis, and are for packing\nlayouts (`square`, `parent`, `maxfill`). `LRTB` runs units left-to-right\nalong a row and stacks rows top-to-bottom; `BTLR` runs them bottom-to-top up\na column and advances columns left-to-right. A four-letter form also works\nfor a fill layout, which just reads whichever axis it needs.\n\nOnly `LRTB`, `LRBT`, `TBLR` and `BTLR` are implemented for packing. The\nright-to-left packing orders (`RLTB`, `RLBT`, `TBRL`, `BTRL`) are accepted by\nthe grammar but unimplemented, and produce unpositioned containers.",
+      "default": "LRBT",
+      "enum": [
+        "BT",
+        "BTLR",
+        "BTRL",
+        "LR",
+        "LRBT",
+        "LRTB",
+        "RL",
+        "RLBT",
+        "RLTB",
+        "TB",
+        "TBLR",
+        "TBRL"
+      ],
+      "type": "string"
+    },
+    "Align": {
+      "description": "Where a run of containers sits within the leftover space of its parent, for\n`fillX` and `fillY` layouts. Packing layouts ignore it.\n\nThe two-letter codes set both axes at once — horizontal `L`/`C`/`R` then\nvertical `T`/`M`/`B` — so a single value like `LB` (left, bottom) reads\ncorrectly whether the level fills X or Y. The word forms set one axis:\n`left`/`center`/`right` are read by `fillX`, `top`/`middle`/`bottom` by\n`fillY`.",
+      "default": "LB",
+      "enum": [
+        "CB",
+        "CM",
+        "CT",
+        "LB",
+        "LM",
+        "LT",
+        "RB",
+        "RM",
+        "RT",
+        "bottom",
+        "center",
+        "left",
+        "middle",
+        "right",
+        "top"
+      ],
+      "type": "string"
+    },
+    "layoutTypes": {
+      "description": "The union of every value accepted by `Layout.type` and `Layout.subgroup.type`\n— the two fields take disjoint halves of it.\n\n`Layout.type` takes only `gridxy`. `Layout.subgroup.type` takes `groupby`,\n`bin`, `flatten` or `passthrough`. See those fields for what each does.",
+      "enum": [
+        "bin",
+        "flatten",
+        "gridxy",
+        "groupby",
+        "passthrough"
+      ],
+      "type": "string"
+    },
+    "aspectRatio": {
+      "description": "How a layout turns its parent's space into boxes for its children — the\nchoice that separates a bar chart from a treemap.\n\n- `fillX` — lay the children out in a row, each spanning the parent's full\n  height and taking a share of its width. Widths come from `size`, order\n  from `direction`, placement from `align`. This is the bar-chart /\n  column-of-groups case.\n- `fillY` — the same, transposed: a column of children, each spanning the\n  full width, sharing the height.\n- `maxfill` — pack the children into a grid chosen to make the boxes as\n  large as possible. With a `uniform` size that is a plain grid; with a\n  `sum`/`count` size it becomes a squarified treemap (see `Layout.size`).\n  The usual choice for a final `flatten` level.\n- `square` — pack into square boxes, centered in the parent.\n- `parent` — pack into boxes with the parent's own aspect ratio.\n- `custom` — accepted by the grammar but unimplemented; there is no field to\n  supply the custom ratio, and the resulting boxes are unsized.",
+      "default": "maxfill",
+      "enum": [
+        "custom",
+        "fillX",
+        "fillY",
+        "maxfill",
+        "parent",
+        "square"
+      ],
+      "type": "string"
+    },
+    "Layout": {
+      "description": "One level of subdivision.\n\nA layout does two things to every container handed to it: `subgroup` decides\nhow that container's rows are split into children, and `aspect_ratio` /\n`size` / `direction` / `align` decide how the container's space is divided\namong them. `padding`, `margin` and `box` then handle spacing and styling.",
+      "type": "object",
+      "properties": {
+        "subgroup": {
+          "description": "How each container's rows are split into child containers — the data half\nof the level.",
+          "type": "object",
+          "properties": {
+            "type": {
+              "$ref": "#/definitions/layoutTypes",
+              "description": "The split rule.\n\n- `groupby` — one child per distinct value of `key`. The usual\n  categorical split.\n- `bin` — one child per interval of the numeric field `key`, cut into\n  `numBin` equal-width bins over the data's extent. Rows with an empty\n  value collect in a leading bin labelled `-`. Makes histograms.\n- `flatten` — one child per row. Normally the last level, so that each\n  row gets a box for its mark. Honors `sort`.\n- `passthrough` — one child holding all the rows, unchanged. Used to\n  insert an extra level of space policy (a nested `fillY` inside a\n  `fillX`, say) without splitting the data further."
+            },
+            "key": {
+              "description": "The data field to split on. Required by `groupby` and `bin`; ignored by\n`flatten` and `passthrough`.",
+              "type": "string"
+            },
+            "numBin": {
+              "description": "Number of equal-width bins for a `bin` subgroup. Ignored otherwise.",
+              "type": "number"
+            },
+            "aspect_ratio": {
+              "description": "Reserved. Not read by the layout engine — the aspect ratio of a level is\nset by `Layout.aspect_ratio`, one level up from here.",
+              "type": "number"
+            },
+            "isShared": {
+              "description": "Share the set of subgroups across sibling containers instead of deriving\nit from each container's own rows.\n\nWith `groupby`, every container gets the same categories in the same\norder, including empty ones — which is what keeps small multiples\naligned and comparable. With `bin`, the bin edges are computed over the\nshared extent, so bins line up across containers.\n\nLeave false and each container gets only the groups its own rows\ncontain, so sibling containers can end up with different, misaligned\nsubgroups.",
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        },
+        "aspect_ratio": {
+          "$ref": "#/definitions/aspectRatio",
+          "description": "How this level divides space among the children `subgroup` produced.",
+          "default": "maxfill"
+        },
+        "parent": {
+          "description": "Internal. The previous layout in the pipeline, linked up by the engine at\nrender time. Do not set it in a spec.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Layout"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "child": {
+          "description": "Internal. The next layout in the pipeline, linked up by the engine at\nrender time. Do not set it in a spec.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Layout"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "size": {
+          "description": "How much of the parent's space each child claims — the quantitative half of\nthe level, and what makes a bar proportional to anything.",
+          "type": "object",
+          "properties": {
+            "isShared": {
+              "description": "Compute one unit length across every container at this level rather than\nper parent container.\n\nShared is what makes lengths comparable across the chart: two bars in\ndifferent groups mean the same thing only if one row is worth the same\nnumber of pixels in both. Unshared lets each parent container use its\nfull space, so each group is scaled to its own total.",
+              "default": true,
+              "type": "boolean"
+            },
+            "type": {
+              "description": "What each child's share is proportional to.\n\n- `uniform` — equal shares, regardless of how many rows a child holds\n- `count` — the number of rows in the child\n- `sum` — the sum of `key` over the child's rows\n\nWith `aspect_ratio: \"maxfill\"`, anything other than `uniform` switches\nthe level to a squarified treemap, which reads `key` off the *first* row\nof each child — so treemaps want a `flatten` level, where each child\nholds exactly one row.",
+              "default": "uniform",
+              "enum": [
+                "count",
+                "sum",
+                "uniform"
+              ],
+              "type": "string"
+            },
+            "key": {
+              "description": "The numeric field summed by `type: \"sum\"` (and read by the `maxfill`\ntreemap). Ignored by the other size types.",
+              "type": "string"
+            }
+          }
+        },
+        "name": {
+          "description": "An identifier for this level. Used by `spec.labels.layouts` to pick levels\nto label, and by the d3 backend as the css class on the level's `<g>`\nelements. Otherwise for your own readability.",
+          "type": "string"
+        },
+        "box": {
+          "description": "Styling for the rectangle drawn behind each container at this level. These\nare the mosaic tiles, the bar bodies, the small-multiple panels — the boxes\nthe marks sit in.\n\nNote that a `flatten` level's box is overwritten with the library default\n(white fill, gray stroke, zero stroke width, 0.5 opacity), since its boxes\nare one per row and are normally covered by the mark anyway.",
+          "type": "object",
+          "properties": {
+            "opacity": {
+              "description": "Fill opacity, 0 to 1.",
+              "default": 0.5,
+              "type": "number"
+            },
+            "fill": {
+              "description": "CSS fill color, or `\"none\"` for an unfilled box.",
+              "default": "white",
+              "type": "string"
+            },
+            "stroke": {
+              "description": "CSS stroke color for the box outline.",
+              "default": "gray",
+              "type": "string"
+            },
+            "stroke-width": {
+              "description": "Outline width in pixels. Set to 0 to hide the outline while keeping the\nfill.",
+              "default": 1,
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          }
+        },
+        "type": {
+          "$ref": "#/definitions/layoutTypes",
+          "description": "The layout algorithm. Only `gridxy` is implemented — it covers every\n`aspect_ratio` above. Any other value leaves this level's containers\nunsized.",
+          "default": "gridxy"
+        },
+        "sizeSharingGroup": {
+          "description": "Internal. Scratch space the engine uses while resolving\n`size.isShared`. Do not set it in a spec.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Container"
+          }
+        },
+        "padding": {
+          "$ref": "#/definitions/Padding",
+          "description": "Inset applied inside each container this level produces, i.e. the gutter\nthe *next* level lays out within. Use this to keep nested containers from\ntouching their parent's edge.\n\nWhen a spec has more than one layout, the first level's padding is\noverwritten with 5 on every side.",
+          "default": {
+            "top": 0,
+            "left": 0,
+            "bottom": 0,
+            "right": 0
+          }
+        },
+        "margin": {
+          "$ref": "#/definitions/Padding",
+          "description": "Gap around each container this level produces, taken out of the space\nbeing divided — so it separates siblings from each other rather than\ninsetting their contents. This is the gap between bars, between mosaic\ntiles, between small-multiple panels.\n\nWhen a spec has more than one layout, the first level's margin is\noverwritten with 5 on every side, and any `flatten` level's margin is\noverwritten with 0.",
+          "default": {
+            "top": 0,
+            "left": 0,
+            "bottom": 0,
+            "right": 0
+          }
+        },
+        "direction": {
+          "$ref": "#/definitions/Direction",
+          "description": "The order in which children are placed into the space this level divides.",
+          "default": "LRBT"
+        },
+        "align": {
+          "$ref": "#/definitions/Align",
+          "description": "Where the run of children sits within the space left over after sizing.\nRead by `fillX`/`fillY` levels; ignored when packing.",
+          "default": "LB"
+        },
+        "containers": {
+          "description": "Internal. The containers this level produced, recorded by the engine at\nrender time. Do not set it in a spec.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Container"
+          }
+        },
+        "sort": {
+          "description": "Ordering of the children within a container. Read only by `flatten`\nsubgroups — on other subgroup types the order comes from the data\n(`groupby`, first-seen) or from the bin edges (`bin`).\n\nThe engine fills in a default sort on every layout that omits one, using\nthe key `survived` — a legacy default from the Titanic examples. On a\n`flatten` level over data without that field, the ordering is arbitrary\nbut stable, so set `sort` explicitly if the order matters.",
+          "type": "object",
+          "properties": {
+            "key": {
+              "description": "The data field to order by.",
+              "type": "string"
+            },
+            "type": {
+              "description": "How to compare values of `key`: `numerical` coerces with `Number` before\ncomparing, anything else compares them as they are.",
+              "enum": [
+                "categorical",
+                "numerical"
+              ],
+              "type": "string"
+            },
+            "direction": {
+              "description": "Sort order. Any value other than `ascending` is treated as descending.",
+              "default": "ascending",
+              "enum": [
+                "ascending",
+                "descending"
+              ],
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "DataValue": {
+      "description": "A single field value on a data row. CSV sources produce only strings; JSON\nsources keep whatever scalar they were written with.",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "DataRow": {
+      "description": "One row of the input data: a flat object of field name to value. Fields\nloaded from CSV arrive as strings.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/DataValue"
+      }
+    },
+    "VisualSpace": {
+      "description": "Internal. The box the layout engine assigned to a container. Positions are\nrelative to the parent container, not the canvas.",
+      "type": "object",
+      "properties": {
+        "width": {
+          "description": "Box width in pixels.",
+          "type": "number"
+        },
+        "height": {
+          "description": "Box height in pixels.",
+          "type": "number"
+        },
+        "posX": {
+          "description": "Offset from the parent container's left edge, in pixels.",
+          "type": "number"
+        },
+        "posY": {
+          "description": "Offset from the parent container's top edge, in pixels.",
+          "type": "number"
+        },
+        "padding": {
+          "$ref": "#/definitions/Padding",
+          "description": "Inset for whatever is laid out inside this box, from `layout.padding`."
+        }
+      }
+    },
+    "ContainerChild": {
+      "description": "Internal. What sits inside a container's `contents`. Every level but the\ndeepest holds further containers; the deepest holds the data rows themselves.\nWhich one it is depends on how far down the tree the node sits, so callers\nnarrow with `isContainer` rather than reading a discriminant.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DataRow"
+        },
+        {
+          "$ref": "#/definitions/Container"
+        }
+      ]
+    },
+    "Container": {
+      "description": "Internal. A node of the tree the layout engine builds, one level per entry in\n`spec.layouts`. Produced by the engine and consumed by the drawing backends;\nnot part of the authoring grammar.",
+      "type": "object",
+      "properties": {
+        "contents": {
+          "description": "Child containers, or — at the deepest level — the data rows themselves.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContainerChild"
+          }
+        },
+        "label": {
+          "description": "The group this container holds: the `groupby` value, the `low-high` range\nof a `bin`, the row index under a `flatten`, or `root` for the canvas.\nThis is the text `spec.labels` prints.",
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "visualspace": {
+          "description": "The box assigned to this container.",
+          "type": "object",
+          "properties": {
+            "width": {
+              "description": "Box width in pixels.",
+              "type": "number"
+            },
+            "height": {
+              "description": "Box height in pixels.",
+              "type": "number"
+            },
+            "posX": {
+              "description": "Offset from the parent container's left edge, in pixels.",
+              "type": "number"
+            },
+            "posY": {
+              "description": "Offset from the parent container's top edge, in pixels.",
+              "type": "number"
+            },
+            "padding": {
+              "$ref": "#/definitions/Padding",
+              "description": "Inset for whatever is laid out inside this box, from `layout.padding`."
+            }
+          }
+        },
+        "layout": {
+          "description": "The layout level that produced this container.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Layout"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "parent": {
+          "description": "The container this one was split out of.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Layout"
+            },
+            {
+              "$ref": "#/definitions/Container"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "x0": {
+          "description": "Lower bin edge, on containers produced by a `bin` subgroup.",
+          "type": "number"
+        },
+        "x1": {
+          "description": "Upper bin edge, on containers produced by a `bin` subgroup.",
+          "type": "number"
+        }
+      }
+    },
+    "EdgeInfo": {
+      "description": "Internal. The grid a packing layout resolved to: how long a unit is along\neach axis and how many fit. The \"filling\" edge is the one traversed first,\nthe \"remaining\" edge the one wrapped onto.",
+      "type": "object",
+      "properties": {
+        "remainingEdgeSideUnitLength": {
+          "description": "Unit length along the wrap axis, in pixels.",
+          "type": "number"
+        },
+        "fillingEdgeSideUnitLength": {
+          "description": "Unit length along the fill axis, in pixels.",
+          "type": "number"
+        },
+        "remainingEdgeRepetitionCount": {
+          "description": "How many units fit along the wrap axis.",
+          "type": "number"
+        },
+        "fillingEdgeRepetitionCount": {
+          "description": "How many units fit along the fill axis.",
+          "type": "number"
+        }
+      }
+    }
+  },
+  "$ref": "#/definitions/Spec"
+}

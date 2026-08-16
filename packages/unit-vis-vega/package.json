@@ -1,0 +1,38 @@
+{
+  "name": "unit-vis-vega",
+  "version": "0.1.0",
+  "description": "Declarative unit charts, drawn with vega",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "unit chart",
+    "visualization",
+    "grammar",
+    "vega"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@unit-vis/core": "0.1.0",
+    "vega": "^5.33.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcnuttandrew/unit-vis.git",
+    "directory": "packages/unit-vis-vega"
+  }
+}

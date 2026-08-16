@@ -179,7 +179,7 @@ export function samplePath(d: string): Point[] {
         break;
       }
       case 'S': {
-        const c1 = previousControl ? {x: 2 * current.x - previousControl.x, y: 2 * current.y - previousControl.y} : current;
+        const c1: Point = previousControl ? {x: 2 * current.x - previousControl.x, y: 2 * current.y - previousControl.y} : current;
         const c2 = {x: base.x + args[0], y: base.y + args[1]};
         const end = {x: base.x + args[2], y: base.y + args[3]};
         points.push(...sampleCubic(current, c1, c2, end));
@@ -196,7 +196,7 @@ export function samplePath(d: string): Point[] {
         break;
       }
       case 'T': {
-        const c1 = previousControl ? {x: 2 * current.x - previousControl.x, y: 2 * current.y - previousControl.y} : current;
+        const c1: Point = previousControl ? {x: 2 * current.x - previousControl.x, y: 2 * current.y - previousControl.y} : current;
         const end = {x: base.x + args[0], y: base.y + args[1]};
         points.push(...sampleQuadratic(current, c1, end));
         control = c1;

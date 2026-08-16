@@ -106,8 +106,9 @@ describe('the vega dataflow', () => {
 
 describe('the embedded code path', () => {
   // The checks above measure `renderVegaHeadless`. This confirms that shipping
-  // `drawUnitVega` through vega-embed into a real document draws the same
-  // thing, so the fast path is a valid stand-in for what the browser runs.
+  // `drawUnitVega` into a real document -- a live `View`, mounted, hovering --
+  // draws the same thing, so the fast path is a valid stand-in for what the
+  // browser runs.
   it.each(SPECS.slice(0, 5).map(s => s.name))('%s matches the headless rendering', async specName => {
     const {spec} = SPECS.find(s => s.name === specName)!;
     const scene = buildSceneForSpec(spec, 60);

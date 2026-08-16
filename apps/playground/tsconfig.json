@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "allowArbitraryExtensions": true,
+    "resolveJsonModule": true,
+
+    /* Bundler mode */
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    // Matching the vite aliases: the app is typechecked against the library's
+    // sources, so a breaking change in a package shows up here immediately
+    // rather than after a rebuild.
+    "paths": {
+      "@unit-vis/core": ["../../packages/core/src/index.ts"],
+      "@unit-vis/core/schema": ["../../packages/core/unit-vis-schema.json"],
+      "unit-vis": ["../../packages/unit-vis/src/index.ts"],
+      "unit-vis-vega": ["../../packages/unit-vis-vega/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

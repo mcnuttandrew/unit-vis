@@ -4,9 +4,9 @@
  * Globbing the JSON directly means a spec added to the app is a spec the
  * parity suite covers, with no list to keep in step.
  */
-import type {Spec} from '../../library/index.d';
+import type {Spec} from '@unit-vis/core';
 
-const modules = import.meta.glob<Spec>('../../src/specs/*.json', {eager: true, import: 'default'});
+const modules = import.meta.glob<Spec>('../../apps/playground/src/specs/*.json', {eager: true, import: 'default'});
 
 export interface NamedSpec {
   name: string;

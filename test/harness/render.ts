@@ -5,22 +5,20 @@
 import {readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {csvParse} from 'd3-dsv';
 import * as vega from 'vega';
-import {applyDefault} from '../../library/defaults';
-import {drawUnit} from '../../library/drawing';
-import drawUnitVega, {buildVegaSpec} from '../../library/drawing-vega';
-import {buildScene} from '../../library/index';
-import type {Container, DataRow, Layout, Spec} from '../../library/index.d';
+import {applyDefault, buildScene, parseCsv} from '@unit-vis/core';
+import type {Container, DataRow, Layout, Spec} from '@unit-vis/core';
+import {drawUnit} from 'unit-vis';
+import {buildVegaSpec, drawUnitVega} from 'unit-vis-vega';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = resolve(HERE, '../..');
 
 /**
- * Specs reference their data by url relative to the served root (`public/`).
- * In node we read it off disk and parse it exactly the way `d3-fetch` would at
- * runtime: csv fields stay strings, json rows keep the types they were written
- * with.
+ * Specs reference their data by url relative to the served root, which is the
+ * playground's `public/`. In node we read it off disk and parse it with the same
+ * parser the library uses at runtime: csv fields stay strings, json rows keep
+ * the types they were written with.
  */
 export function loadSpecData(spec: Spec): DataRow[] {
   if (spec.data.values) {
@@ -29,8 +27,8 @@ export function loadSpecData(spec: Spec): DataRow[] {
   if (!spec.data.url) {
     throw new Error('spec has neither data.values nor data.url');
   }
-  const raw = readFileSync(join(REPO_ROOT, 'public', spec.data.url), 'utf8');
-  return spec.data.url.endsWith('.json') ? (JSON.parse(raw) as DataRow[]) : (csvParse(raw) as DataRow[]);
+  const raw = readFileSync(join(REPO_ROOT, 'apps/playground/public', spec.data.url), 'utf8');
+  return spec.data.url.endsWith('.json') ? (JSON.parse(raw) as DataRow[]) : parseCsv(raw);
 }
 
 export interface Scene {
@@ -83,7 +81,7 @@ export function renderOld(scene: Scene, id = 'old-target'): string {
 }
 
 /**
- * The real vega code path: `drawUnitVega` -> `vega-embed` -> svg renderer, all
+ * The real vega code path: `drawUnitVega` -> a live `View` -> svg renderer, all
  * against the jsdom document. This is what the browser actually runs.
  */
 export async function renderVegaEmbedded(scene: Scene, id = 'vega-target'): Promise<string> {
@@ -94,8 +92,8 @@ export async function renderVegaEmbedded(scene: Scene, id = 'vega-target'): Prom
 
 /**
  * The same vega spec rendered headlessly. Equivalent markup to the embedded
- * path minus vega-embed's chrome, and it never touches the document — handy for
- * the geometry comparisons and much faster in bulk.
+ * path, minus the wrapper element vega mounts, and it never touches the
+ * document — handy for the geometry comparisons and much faster in bulk.
  */
 export async function renderVegaHeadless(scene: Scene): Promise<string> {
   const vegaSpec = buildVegaSpec(scene.rootContainer, scene.spec);

@@ -5,12 +5,12 @@
  * option is still a spec the old backend renders exactly as it did before.
  */
 import {describe, expect, it} from 'vitest';
-import {buildVegaSpec} from '../library/drawing-vega';
+import {buildVegaSpec} from 'unit-vis-vega';
 import {classifyPath} from './harness/path-geometry';
 import {buildSceneForSpec, collectVegaLogs, renderOld, renderVegaHeadless} from './harness/render';
 import {modelFromVegaSvg, parseSvg, parseTransform} from './harness/svg-model';
 import {ALL_SPECS} from './harness/specs';
-import type {Labels, Legend, Spec} from '../library/index.d';
+import type {Labels, Legend, Spec} from '@unit-vis/core';
 
 /**
  * A groupby over species with a flatten under it: one level that names its
@@ -171,7 +171,7 @@ describe('legend', () => {
 
   it('is dropped when the marks are not colored by anything', () => {
     const spec = specWith({legend: true});
-    delete spec.mark!.color.key;
+    delete (spec.mark!.color as {key?: string}).key;
     const scene = buildSceneForSpec(spec);
     const vegaSpec = buildVegaSpec(scene.rootContainer, scene.spec) as Record<string, unknown>;
     expect(vegaSpec.legends).toBeUndefined();

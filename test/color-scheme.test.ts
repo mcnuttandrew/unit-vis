@@ -10,7 +10,7 @@ import {describe, expect, it} from 'vitest';
 import {buildSceneForSpec, renderOld, renderVegaHeadless} from './harness/render';
 import {modelFromOldSvg, modelFromVegaSvg} from './harness/svg-model';
 import {ALL_SPECS} from './harness/specs';
-import type {Schemes, Spec} from '../library/index.d';
+import type {Schemes, Spec} from '@unit-vis/core';
 
 const BASE = 'unit_column_chart';
 const SAMPLE_SIZE = 60;
