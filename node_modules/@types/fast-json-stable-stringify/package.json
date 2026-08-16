@@ -1,0 +1,12 @@
+{
+    "name": "@types/fast-json-stable-stringify",
+    "version": "2.1.2",
+    "description": "Stub TypeScript definitions entry for fast-json-stable-stringify, which provides its own types definitions",
+    "main": "",
+    "scripts": {},
+    "license": "MIT",
+    "dependencies": {
+        "fast-json-stable-stringify": "*"
+    },
+    "deprecated": "This is a stub types definition. fast-json-stable-stringify provides its own type definitions, so you do not need this installed."
+}
