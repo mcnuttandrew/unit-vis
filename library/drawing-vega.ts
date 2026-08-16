@@ -1,13 +1,14 @@
 import embed from "vega-embed";
 import type {
   Data as VegaData,
+  Legend as VegaLegend,
   Mark as VegaMark,
   Signal as VegaSignal,
   Spec as VegaSpec,
 } from "vega-typings";
 import { defaultSetting } from "./constants";
 
-import type { Container, Mark, Spec } from "./index.d";
+import type { Container, Labels, Legend, Mark, Spec } from "./index.d";
 
 /**
  * The layout engine hands us a container tree whose depth is one level per
@@ -28,6 +29,78 @@ import type { Container, Mark, Spec } from "./index.d";
  *   - signals carry the mark policy, so shape/size/color are encoding-time
  *     decisions rather than spec-construction-time branches.
  */
+
+/**
+ * Defaults for the two decorations this backend draws and the old one does not.
+ * They live here rather than in `constants` because `applyDefault` fills its
+ * defaults in on the spec itself, and both decorations are off until a spec
+ * asks for them.
+ */
+const labelDefaults: Required<Omit<Labels, "layouts">> = {
+  orient: "bottom",
+  offset: 4,
+  fontSize: 10,
+  color: "#333333",
+};
+const legendDefaults: Required<Omit<Legend, "title">> = { orient: "right" };
+
+/** Subgroup types whose containers carry a label worth printing. */
+const NAMING_SUBGROUPS = new Set(["groupby", "bin"]);
+
+interface ResolvedLabels extends Required<Omit<Labels, "layouts">> {
+  /** Depths of the levels to label, i.e. `spec.layouts` index + 1. */
+  depths: number[];
+}
+
+interface ResolvedLegend extends Required<Omit<Legend, "title">> {
+  title: string;
+}
+
+/**
+ * `spec.labels` picks which layout levels get their container labels drawn.
+ * Left to itself it picks the levels that actually name their groups: a
+ * `flatten` level labels its containers by position in the group, which is a
+ * row number rather than anything a reader wants on the chart.
+ */
+function resolveLabels(spec: Spec): ResolvedLabels | null {
+  if (!spec.labels) {
+    return null;
+  }
+  const options: Labels = spec.labels === true ? {} : spec.labels;
+  const wanted = options.layouts;
+  const depths = spec.layouts
+    .map((layout, index) => ({ layout, depth: index + 1 }))
+    .filter(({ layout }) =>
+      wanted
+        ? Boolean(layout.name) && wanted.indexOf(layout.name!) >= 0
+        : Boolean(layout.subgroup) && NAMING_SUBGROUPS.has(layout.subgroup.type),
+    )
+    .map(({ depth }) => depth);
+
+  if (!depths.length) {
+    return null;
+  }
+  return {
+    orient: options.orient ?? labelDefaults.orient,
+    offset: options.offset ?? labelDefaults.offset,
+    fontSize: options.fontSize ?? labelDefaults.fontSize,
+    color: options.color ?? labelDefaults.color,
+    depths,
+  };
+}
+
+/** A legend needs something to explain, so it needs a color key. */
+function resolveLegend(spec: Spec): ResolvedLegend | null {
+  const colorKey = spec.mark && spec.mark.color && spec.mark.color.key;
+  if (!spec.legend || !colorKey) {
+    return null;
+  }
+  const options: Legend = spec.legend === true ? {} : spec.legend;
+  return {
+    orient: options.orient ?? legendDefaults.orient,
+    title: options.title ?? colorKey,
+  };
+}
 
 /** A node whose children are containers, so it renders as a layout box. */
 const HAS_CONTAINER_CHILDREN =
@@ -69,6 +142,9 @@ function descendLevel(depth: number): VegaData {
       { type: "formula", as: "width", expr: "datum.node.visualspace.width" },
       { type: "formula", as: "height", expr: "datum.node.visualspace.height" },
       { type: "formula", as: "contents", expr: "datum.node.contents" },
+      // The group this container holds -- the groupby value, the bin range --
+      // which is what the label marks print.
+      { type: "formula", as: "label", expr: "datum.node.label" },
       { type: "formula", as: "depth", expr: `${depth}` },
     ],
   };
@@ -90,7 +166,11 @@ function partitionLevel(depth: number): VegaData[] {
   ];
 }
 
-function buildData(rootContainer: Container, spec: Spec): VegaData[] {
+function buildData(
+  rootContainer: Container,
+  spec: Spec,
+  labels: ResolvedLabels | null,
+): VegaData[] {
   const numLayouts = spec.layouts.length;
 
   // Depth 0 is the root container itself. Project first so its cyclic
@@ -225,6 +305,16 @@ function buildData(rootContainer: Container, spec: Spec): VegaData[] {
     ],
   });
 
+  // Container labels, drawn from whichever levels `spec.labels` selected. The
+  // level datasets already carry every field the text marks need, so this is
+  // just the union of the levels in play.
+  if (labels) {
+    data.push({
+      name: "containerLabels",
+      source: labels.depths.map((depth) => `level${depth}`),
+    });
+  }
+
   // Shape selection is a filter over a signal rather than a JS branch, so
   // flipping `markShape` reshapes the chart without rebuilding the spec.
   data.push(
@@ -243,10 +333,19 @@ function buildData(rootContainer: Container, spec: Spec): VegaData[] {
   return data;
 }
 
-function buildSignals(spec: Spec): VegaSignal[] {
+function buildSignals(spec: Spec, labels: ResolvedLabels | null): VegaSignal[] {
   // `applyDefault` normally fills this in, but the type allows it to be absent.
   const mark: Partial<Mark> = spec.mark ?? {};
+  const labelSignals: VegaSignal[] = labels
+    ? [
+        { name: "labelOrient", value: labels.orient },
+        { name: "labelOffset", value: labels.offset },
+        { name: "labelFontSize", value: labels.fontSize },
+        { name: "labelColor", value: labels.color },
+      ]
+    : [];
   return [
+    ...labelSignals,
     { name: "boxDefaults", value: defaultSetting.layout.box },
     { name: "markShape", value: mark.shape || "circle" },
     { name: "markSizeType", value: (mark.size && mark.size.type) || "max" },
@@ -268,17 +367,84 @@ function buildSignals(spec: Spec): VegaSignal[] {
   ];
 }
 
+/**
+ * The text that labels one container, anchored to whichever edge
+ * `labels.orient` names and nudged clear of it by `labels.offset` pixels.
+ * Orientation is a signal like the mark policy is, so the same spec re-renders
+ * against a different edge without being rebuilt.
+ */
+function buildLabelMark(): VegaMark {
+  /** Choose per orientation: one value per side, one for the other axis. */
+  const horizontal = (left: string, right: string, center: string): string =>
+    `labelOrient === 'left' ? ${left} : labelOrient === 'right' ? ${right} : ${center}`;
+  const vertical = (top: string, bottom: string, middle: string): string =>
+    `labelOrient === 'top' ? ${top} : labelOrient === 'bottom' ? ${bottom} : ${middle}`;
+
+  return {
+    name: "labelMarks",
+    type: "text",
+    from: { data: "containerLabels" },
+    encode: {
+      update: {
+        x: {
+          scale: "xscale",
+          signal: horizontal("datum.absX", "datum.absX + datum.width", "datum.absX + datum.width / 2"),
+        },
+        y: {
+          scale: "yscale",
+          signal: vertical("datum.absY", "datum.absY + datum.height", "datum.absY + datum.height / 2"),
+        },
+        // The offset is a pixel nudge rather than a data-space one, so it holds
+        // whatever the container is sized in.
+        dx: { signal: horizontal("-labelOffset", "labelOffset", "0") },
+        dy: { signal: vertical("-labelOffset", "labelOffset", "0") },
+        align: { signal: horizontal("'right'", "'left'", "'center'") },
+        baseline: { signal: vertical("'bottom'", "'top'", "'middle'") },
+        text: { signal: "'' + datum.label" },
+        fontSize: { signal: "labelFontSize" },
+        fill: { signal: "labelColor" },
+      },
+    },
+  } as VegaMark;
+}
+
+/** A swatch per color-scale entry, shaped like the marks it stands for. */
+function buildLegend(legend: ResolvedLegend): VegaLegend {
+  return {
+    fill: "colorScale",
+    title: legend.title,
+    orient: legend.orient,
+    encode: {
+      symbols: {
+        update: {
+          shape: { signal: "markShape === 'rect' ? 'square' : 'circle'" },
+        },
+      },
+    },
+  } as VegaLegend;
+}
+
 export function buildVegaSpec(container: Container, spec: Spec): VegaSpec {
+  const labels = resolveLabels(spec);
+  const legend = resolveLegend(spec);
+  const decorated = Boolean(labels || legend);
+
   return {
     width: spec.width,
     height: spec.height,
     // The layout engine already sized the canvas, and the d3 backend draws into
     // exactly that box. Without this vega would re-pad around the mark bounds
     // and shift everything whenever a stroke or a mark spills over the edge.
+    //
+    // Decorations sit outside that box by construction, so a decorated chart
+    // pads instead: the plot area is still exactly `spec.width` by
+    // `spec.height`, and the svg around it grows to hold the labels and legend
+    // rather than clipping them.
     padding: 0,
-    autosize: { type: "none" },
-    signals: buildSignals(spec),
-    data: buildData(container, spec),
+    autosize: decorated ? { type: "pad", resize: false } : { type: "none" },
+    signals: buildSignals(spec, labels),
+    data: buildData(container, spec, labels),
+    ...(legend ? { legends: [buildLegend(legend)] } : {}),
     scales: [
       {
         name: "xscale",
@@ -359,6 +525,8 @@ export function buildVegaSpec(container: Container, spec: Spec): VegaSpec {
           },
         },
       },
+      // Last, so the text sits over the units rather than under them.
+      ...(labels ? [buildLabelMark()] : []),
     ] as VegaMark[],
   };
 }
