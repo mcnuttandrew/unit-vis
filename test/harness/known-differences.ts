@@ -41,9 +41,6 @@ export const KNOWN_DIFFERENCES: KnownDifference[] = [
  * these pre-existing crashes.
  */
 export const KNOWN_LAYOUT_FAILURES: {[spec: string]: string} = {
-  squarified:
-    "treemap.ts's `Container` is called without `new`, so `this` is undefined " +
-    '(TypeError: Cannot set properties of undefined (setting \'xoffset\')).',
   unit_small_multiple: 'layout.ts `getMinAmongContainers` reduces an empty container list with no initial value.',
 };
 

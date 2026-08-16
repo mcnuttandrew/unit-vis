@@ -4,7 +4,7 @@ import {buildRootContainer} from './container';
 import {applyLayout, buildLayoutList} from './layout';
 import {drawUnit} from './drawing';
 import drawUnitVega from './drawing-vega';
-import {Spec, DataRow, Layout, Container} from './index.d';
+import type {Spec, DataRow, Layout, Container} from './index.d';
 
 type Backend = 'old' | 'vega';
 interface Options {
@@ -20,7 +20,10 @@ export const UnitChart = (divId: string, spec: Spec, options: Options = defaultO
   if (!spec.data) {
     return;
   }
-  (spec.data.url ? fetchData(spec.data.url) : Promise.resolve(spec.data.values)).then((data: DataRow[]) => {
+  (spec.data.url
+    ? fetchData(spec.data.url)
+    : Promise.resolve(spec.data.values ?? [])
+  ).then((data: DataRow[]) => {
     renderChart(data, spec, divId, options.backend);
   });
 };
@@ -47,7 +50,7 @@ export function buildScene(data: DataRow[], spec: Spec): {rootContainer: Contain
   const layoutList = buildLayoutList(spec.layouts);
 
   let childContainers = [rootContainer];
-  let currentLayout = layoutList.head;
+  let currentLayout: string | Layout | undefined = layoutList.head;
 
   while (currentLayout && currentLayout !== 'EndOfLayout') {
     childContainers = applyLayout(childContainers, currentLayout as Layout);

@@ -24,7 +24,7 @@ interface Padding {
  * placeholders for size policies the paper describes but this library does not
  * implement yet. Use `max` unless you want the marks hidden.
  */
-type SizePolicies = 'uniform' | 'count' | 'sum' | 'max';
+type SizePolicies = "uniform" | "count" | "sum" | "max";
 
 /**
  * A categorical color palette, named the way d3-scale-chromatic names them.
@@ -42,16 +42,16 @@ type SizePolicies = 'uniform' | 'count' | 'sum' | 'max';
  * @default "schemeCategory10"
  */
 type Schemes =
-  | 'schemeCategory10'
-  | 'schemeAccent'
-  | 'schemeDark2'
-  | 'schemePaired'
-  | 'schemePastel1'
-  | 'schemePastel2'
-  | 'schemeSet1'
-  | 'schemeSet2'
-  | 'schemeSet3'
-  | 'schemeTableau10';
+  | "schemeCategory10"
+  | "schemeAccent"
+  | "schemeDark2"
+  | "schemePaired"
+  | "schemePastel1"
+  | "schemePastel2"
+  | "schemeSet1"
+  | "schemeSet2"
+  | "schemeSet3"
+  | "schemeTableau10";
 
 /**
  * How each data row is drawn once the layouts have decided where it goes.
@@ -79,7 +79,7 @@ export type Mark = {
      * implemented — values are treated as discrete regardless of whether they
      * look numeric.
      */
-    type: 'categorical';
+    type: "categorical";
     /**
      * The categorical palette used for `color.key`.
      *
@@ -125,7 +125,7 @@ export type Mark = {
    *
    * @default "circle"
    */
-  shape?: 'circle' | 'rect';
+  shape?: "circle" | "rect";
 
   /**
    * Reserved. Present in most bundled example specs and in the library
@@ -149,7 +149,7 @@ export interface Labels {
    *
    * @default "bottom"
    */
-  orient?: 'top' | 'bottom' | 'left' | 'right';
+  orient?: "top" | "bottom" | "left" | "right";
   /**
    * Restrict labelling to specific layout levels, by `layout.name`. A layout
    * with no `name` can never be selected this way.
@@ -196,14 +196,14 @@ export interface Legend {
    * @default "right"
    */
   orient?:
-    | 'left'
-    | 'right'
-    | 'top'
-    | 'bottom'
-    | 'top-left'
-    | 'top-right'
-    | 'bottom-left'
-    | 'bottom-right';
+    | "left"
+    | "right"
+    | "top"
+    | "bottom"
+    | "top-left"
+    | "top-right"
+    | "bottom-left"
+    | "bottom-right";
   /**
    * Heading above the swatches.
    *
@@ -346,18 +346,18 @@ export interface Spec {
  * @default "LRBT"
  */
 export type Direction =
-  | 'BT'
-  | 'BTLR'
-  | 'BTRL'
-  | 'LR'
-  | 'LRBT'
-  | 'LRTB'
-  | 'RL'
-  | 'RLBT'
-  | 'RLTB'
-  | 'TB'
-  | 'TBLR'
-  | 'TBRL';
+  | "BT"
+  | "BTLR"
+  | "BTRL"
+  | "LR"
+  | "LRBT"
+  | "LRTB"
+  | "RL"
+  | "RLBT"
+  | "RLTB"
+  | "TB"
+  | "TBLR"
+  | "TBRL";
 
 /**
  * Where a run of containers sits within the leftover space of its parent, for
@@ -372,21 +372,21 @@ export type Direction =
  * @default "LB"
  */
 export type Align =
-  | 'bottom'
-  | 'center'
-  | 'middle'
-  | 'right'
-  | 'top'
-  | 'CB'
-  | 'CM'
-  | 'CT'
-  | 'LB'
-  | 'LM'
-  | 'LT'
-  | 'RB'
-  | 'RM'
-  | 'RT'
-  | 'left';
+  | "bottom"
+  | "center"
+  | "middle"
+  | "right"
+  | "top"
+  | "CB"
+  | "CM"
+  | "CT"
+  | "LB"
+  | "LM"
+  | "LT"
+  | "RB"
+  | "RM"
+  | "RT"
+  | "left";
 
 /**
  * The union of every value accepted by `Layout.type` and `Layout.subgroup.type`
@@ -395,7 +395,12 @@ export type Align =
  * `Layout.type` takes only `gridxy`. `Layout.subgroup.type` takes `groupby`,
  * `bin`, `flatten` or `passthrough`. See those fields for what each does.
  */
-export type layoutTypes = 'flatten' | 'groupby' | 'bin' | 'passthrough' | 'gridxy';
+export type layoutTypes =
+  | "flatten"
+  | "groupby"
+  | "bin"
+  | "passthrough"
+  | "gridxy";
 
 /**
  * How a layout turns its parent's space into boxes for its children — the
@@ -418,7 +423,13 @@ export type layoutTypes = 'flatten' | 'groupby' | 'bin' | 'passthrough' | 'gridx
  *
  * @default "maxfill"
  */
-export type aspectRatio = 'square' | 'parent' | 'fillX' | 'fillY' | 'maxfill' | 'custom';
+export type aspectRatio =
+  | "square"
+  | "parent"
+  | "fillX"
+  | "fillY"
+  | "maxfill"
+  | "custom";
 
 /**
  * One level of subdivision.
@@ -531,7 +542,7 @@ export interface Layout {
      *
      * @default "uniform"
      */
-    type?: 'uniform' | 'sum' | 'count';
+    type?: "uniform" | "sum" | "count";
     /**
      * The numeric field summed by `type: "sum"` (and read by the `maxfill`
      * treemap). Ignored by the other size types.
@@ -580,7 +591,7 @@ export interface Layout {
      *
      * @default 1
      */
-    'stroke-width'?: string | number;
+    "stroke-width"?: string | number;
   };
 
   /**
@@ -596,7 +607,7 @@ export interface Layout {
    * Internal. Scratch space the engine uses while resolving
    * `size.isShared`. Do not set it in a spec.
    */
-  sizeSharingGroup?: any;
+  sizeSharingGroup?: Container[];
 
   /**
    * Inset applied inside each container this level produces, i.e. the gutter
@@ -663,23 +674,29 @@ export interface Layout {
      * comparing, anything else compares them as they are.
      */
     // TODO i'm unsure this does anything
-    type?: 'numerical' | 'categorical';
+    type?: "numerical" | "categorical";
     /**
      * Sort order. Any value other than `ascending` is treated as descending.
      *
      * @default "ascending"
      */
     // Todo what is the default ehre
-    direction?: 'ascending' | 'descending';
+    direction?: "ascending" | "descending";
   };
 }
+
+/**
+ * A single field value on a data row. CSV sources produce only strings; JSON
+ * sources keep whatever scalar they were written with.
+ */
+export type DataValue = string | number | boolean | null;
 
 /**
  * One row of the input data: a flat object of field name to value. Fields
  * loaded from CSV arrive as strings.
  */
 export interface DataRow {
-  [x: string]: any;
+  [x: string]: DataValue;
 }
 
 /**
@@ -700,19 +717,27 @@ export type VisualSpace = {
 };
 
 /**
+ * Internal. What sits inside a container's `contents`. Every level but the
+ * deepest holds further containers; the deepest holds the data rows themselves.
+ * Which one it is depends on how far down the tree the node sits, so callers
+ * narrow with `isContainer` rather than reading a discriminant.
+ */
+export type ContainerChild = Container | DataRow;
+
+/**
  * Internal. A node of the tree the layout engine builds, one level per entry in
  * `spec.layouts`. Produced by the engine and consumed by the drawing backends;
  * not part of the authoring grammar.
  */
 export interface Container {
   /** Child containers, or — at the deepest level — the data rows themselves. */
-  contents: any[];
+  contents: ContainerChild[];
   /**
    * The group this container holds: the `groupby` value, the `low-high` range
    * of a `bin`, the row index under a `flatten`, or `root` for the canvas.
    * This is the text `spec.labels` prints.
    */
-  label: 'root' | string | number;
+  label: "root" | string | number;
   /** The box assigned to this container. */
   visualspace: VisualSpace;
   /** The layout level that produced this container. */
