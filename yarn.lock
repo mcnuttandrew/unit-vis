@@ -670,6 +670,45 @@
   resolved "https://registry.yarnpkg.com/@types/clone/-/clone-2.1.4.tgz#9680f886c935dcf596273f1218abb71efb01531a"
   integrity sha512-NKRWaEGaVGVLnGLB2GazvDaZnyweW9FJLLFL5LhywGJB3aqGMT9R/EUoJoSRP4nzofYnZysuDmrEJtJdAqUOtQ==
 
+"@types/d3-array@^2.12.8":
+  version "2.12.8"
+  resolved "https://registry.yarnpkg.com/@types/d3-array/-/d3-array-2.12.8.tgz#bfa8888fb5a06138109029fc7c8aae587ae2f405"
+  integrity sha512-k+ozvEjpOc1etEyZYq/HnUtuuXuhc5OWgD2Dfvo1eLvuDTq3X2S+t8CaqNMzYxeGB6zhrQt+h8Lh8psRs3wMCA==
+
+"@types/d3-dsv@^1":
+  version "1.2.8"
+  resolved "https://registry.yarnpkg.com/@types/d3-dsv/-/d3-dsv-1.2.8.tgz#0e416bd4961be0bb45d77e082784635337ac4848"
+  integrity sha512-x1m1s0lVstZQ5/Kzp4bVIMee3fFuDm+hphVnvrYA7wU16XqwgbCBfeVvHYZzVQQIy4jyi3MEtgduLVuwIRCKLQ==
+
+"@types/d3-fetch@^1.2.5":
+  version "1.2.5"
+  resolved "https://registry.yarnpkg.com/@types/d3-fetch/-/d3-fetch-1.2.5.tgz#e2a044eb1efad3bd0815427ce22529e7592d023a"
+  integrity sha512-5SpBGkHtH01Zi5gMGfEXZp72NcQJB83uskIrlj9N0z9w4vVP7dHIgDu3v8BLhhqn8Oj98wuIrlatdiYK3+q3tA==
+  dependencies:
+    "@types/d3-dsv" "^1"
+
+"@types/d3-scale-chromatic@^1.5.4":
+  version "1.5.4"
+  resolved "https://registry.yarnpkg.com/@types/d3-scale-chromatic/-/d3-scale-chromatic-1.5.4.tgz#b067005a6b32842921bde591a8a4bf40727c50dd"
+  integrity sha512-HwLVEm8laYTNOR9Kc9745XDKgRa69VIIChNkSKJgrJOsDLI9QSiFSH2Bi4wMbGrvFs+X64azev7NfBPq+VOFVg==
+
+"@types/d3-scale@^3.3.5":
+  version "3.3.5"
+  resolved "https://registry.yarnpkg.com/@types/d3-scale/-/d3-scale-3.3.5.tgz#c89ff1550a4246f717e3c2e35deb35e183a338ba"
+  integrity sha512-YOpKj0kIEusRf7ofeJcSZQsvKbnTwpe1DUF+P2qsotqG53kEsjm7EzzliqQxMkAWdkZcHrg5rRhB4JiDOQPX+A==
+  dependencies:
+    "@types/d3-time" "^2"
+
+"@types/d3-selection@^1.4.7":
+  version "1.4.7"
+  resolved "https://registry.yarnpkg.com/@types/d3-selection/-/d3-selection-1.4.7.tgz#cc38168296b422d8aed75c60ce51ca76d69281dd"
+  integrity sha512-aLaTOjdOJEFPhij59NdNwppvpHBheZFlLbcb7cIZZYLC0he9Wmdd/u4+1NZxlr7ncK+mq1PLmowMPw1GONrIQg==
+
+"@types/d3-time@^2":
+  version "2.1.4"
+  resolved "https://registry.yarnpkg.com/@types/d3-time/-/d3-time-2.1.4.tgz#43587aa57d565ab60a1d2201edeebc497d5c1252"
+  integrity sha512-BTfLsxTeo7yFxI/haOOf1ZwJ6xKgQLT9dCp+EcmQv87Gox6X+oKl4mLKfO6fnWm3P22+A6DknMNEZany8ql2Rw==
+
 "@types/deep-eql@*":
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/@types/deep-eql/-/deep-eql-4.0.2.tgz#334311971d3a07121e7eb91b684a605e7eea9cbd"
@@ -3061,13 +3100,6 @@ vega-transforms@~4.12.2:
     vega-statistics "^1.9.0"
     vega-time "^2.1.4"
     vega-util "^1.17.4"
-
-vega-typings@^0.21.0:
-  version "0.21.0"
-  resolved "https://registry.yarnpkg.com/vega-typings/-/vega-typings-0.21.0.tgz#2e860f0d27d3db67ae06fa22a157b9b924224af8"
-  integrity sha512-dG0RtnJUn3+BQMO4NjjTdcp5UTBR56yQsLXPPCAFUHeLuycEVKlyhBa/kbvAZv2r+QxdeEYwKUNYy9CQotF5KA==
-  dependencies:
-    vega-util "^1.15.2"
 
 vega-typings@~1.5.1:
   version "1.5.1"

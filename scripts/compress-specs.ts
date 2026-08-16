@@ -2,7 +2,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 import {
   Formatter,
   FracturedJsonOptions,
-  CommentPolicy,
   EolStyle,
   NumberListAlignment,
   TableCommaPlacement,

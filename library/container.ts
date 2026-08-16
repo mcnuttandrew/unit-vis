@@ -1,14 +1,29 @@
+import { bin, extent, range } from "d3-array";
+import type { Bin } from "d3-array";
+import { scaleLinear } from "d3-scale";
 import {
-  extent,
-  range,
-  // @ts-ignore
-  bin,
-} from 'd3-array';
-import {scaleLinear} from 'd3-scale';
-import {emptyContainersFromKeys, getSharingAncestorContainer, isContainer} from './utils';
-import {DataRow, Spec, Container, Layout, VisualSpace} from '../index.d';
-export function buildRootContainer(csvData: DataRow[], spec: Spec): Container {
-  if (!spec.hasOwnProperty('padding')) {
+  asRow,
+  emptyContainersFromKeys,
+  getSharingAncestorContainer,
+  isContainer,
+} from "./utils";
+import type {
+  Container,
+  ContainerChild,
+  Layout,
+  Spec,
+  VisualSpace,
+} from "./index.d";
+
+/**
+ * A run of rows headed for one child container. `d3-array`'s bins arrive in
+ * this shape already; the leading group of rows with no value for the binned
+ * key is assembled by hand to match.
+ */
+type RowGroup = ContainerChild[] & { x0?: number; x1?: number };
+
+export function buildRootContainer(csvData: ContainerChild[], spec: Spec): Container {
+  if (!Object.hasOwn(spec, "padding")) {
     spec.padding = {
       top: 10,
       left: 30,
@@ -18,16 +33,16 @@ export function buildRootContainer(csvData: DataRow[], spec: Spec): Container {
   }
   const myContainer: Container = {
     contents: csvData,
-    label: 'root',
+    label: "root",
     visualspace: {
-      width: spec.width,
-      height: spec.height,
+      width: spec.width!,
+      height: spec.height!,
       posX: 0,
       posY: 0,
-      padding: spec.padding,
+      padding: spec.padding!,
     },
-    layout: 'StartOfLayout',
-    parent: 'RootContainer',
+    layout: "StartOfLayout",
+    parent: "RootContainer",
   };
 
   return myContainer;
@@ -39,20 +54,21 @@ function blankVisualSpace(): VisualSpace {
     height: 0,
     posX: 0,
     posY: 0,
-    padding: {left: 0, right: 0, top: 0, bottom: 0},
+    padding: { left: 0, right: 0, top: 0, bottom: 0 },
   };
 }
 
 function makeContainersForCategoricalVar(
-  sharingDomain: Container[],
+  sharingDomain: ContainerChild[],
   container: Container,
   layout: Layout,
 ): Container[] {
-  const newContainers = emptyContainersFromKeys(sharingDomain, layout.subgroup.key);
+  const key = layout.subgroup.key!;
+  const newContainers = emptyContainersFromKeys(sharingDomain, key);
 
-  newContainers.forEach(function(c: Container) {
-    c.contents = container.contents.filter(function(d) {
-      return d[layout.subgroup.key] == c.label;
+  newContainers.forEach(function (c: Container) {
+    c.contents = container.contents.filter(function (d) {
+      return asRow(d)[key] == c.label;
     });
     c.parent = container;
   });
@@ -60,46 +76,47 @@ function makeContainersForCategoricalVar(
 }
 
 function makeContainersForNumericalVar(
-  sharingDomain: Container[],
+  sharingDomain: ContainerChild[],
   container: Container,
   layout: Layout,
 ): Container[] {
   const subgroup = layout.subgroup;
+  const key = subgroup.key!;
+  const numBin = subgroup.numBin!;
 
-  const extentVal = extent(sharingDomain, (d: any) => {
-    return Number(d[subgroup.key]);
+  const [low, high] = extent(sharingDomain, (d) => Number(asRow(d)[key]));
+  // An empty domain leaves the bin edges unusable; carrying the NaN through is
+  // what the scale would have produced anyway.
+  const extentVal: [number, number] = [low ?? NaN, high ?? NaN];
+
+  const tempScale = scaleLinear().domain([0, numBin]).range(extentVal);
+  const tickArray = range(numBin + 1).map(tempScale);
+
+  const nullGroup: RowGroup = container.contents.filter(function (d) {
+    return asRow(d)[key] == "";
   });
 
-  const tempScale = scaleLinear()
-    .domain([0, subgroup.numBin])
-    .range(extentVal);
-  const tickArray = range(subgroup.numBin + 1).map(tempScale);
-
-  let nullGroup: any = container.contents.filter(function(d) {
-    return d[subgroup.key] == '';
+  const valueGroup = container.contents.filter(function (d) {
+    return asRow(d)[key] != "";
   });
 
-  const valueGroup = container.contents.filter(function(d) {
-    return d[subgroup.key] != '';
-  });
-
-  const bins = bin()
+  const bins: Bin<ContainerChild, number>[] = bin<ContainerChild, number>()
     .domain(extentVal)
     .thresholds(tickArray)
-    .value(function(d: any) {
-      return +d[subgroup.key];
+    .value(function (d) {
+      return Number(asRow(d)[key]);
     })(valueGroup);
 
-  nullGroup = [nullGroup];
-  nullGroup.x0 = '';
-  nullGroup.x1 = '';
+  // The rows with no value for `key` lead the bins as a group of their own.
+  const groups: RowGroup[] = [nullGroup, ...bins];
 
-  return nullGroup.concat(bins).map(function(d: Container) {
+  return groups.map(function (d) {
     return {
       contents: d,
       label: `${d.x0}-${d.x1}`,
-      visualspace: {},
+      visualspace: blankVisualSpace(),
       parent: container,
+      layout: null,
     };
   });
 }
@@ -117,8 +134,11 @@ function makeContainersForPassthrough(container: Container): Container[] {
   ];
 }
 
-function makeContainersForFlatten(container: Container, layout: Layout): Container[] {
-  const leaves = container.contents.map(function(c, i) {
+function makeContainersForFlatten(
+  container: Container,
+  layout: Layout,
+): Container[] {
+  const leaves: Container[] = container.contents.map(function (c, i) {
     return {
       contents: [c],
       label: i,
@@ -128,61 +148,65 @@ function makeContainersForFlatten(container: Container, layout: Layout): Contain
     };
   });
 
-  if (layout.hasOwnProperty('sort')) {
-    leaves.sort(function(a, b) {
-      let Avalue = a.contents[0][layout.sort.key];
-      let Bvalue = b.contents[0][layout.sort.key];
+  const sort = layout.sort;
+  if (sort) {
+    leaves.sort(function (a, b) {
+      const rawA = asRow(a.contents[0])[sort.key];
+      const rawB = asRow(b.contents[0])[sort.key];
+      const aValue = sort.type === "numerical" ? Number(rawA) : rawA;
+      const bValue = sort.type === "numerical" ? Number(rawB) : rawB;
 
-      if (layout.sort.type === 'numerical') {
-        Avalue = Number(Avalue);
-        Bvalue = Number(Bvalue);
-      }
+      const ascending = sort.direction === "ascending" ? 1 : -1;
 
-      const ascending = layout.sort.direction === 'ascending' ? 1 : -1;
-
-      return Avalue > Bvalue ? ascending : -1 * ascending;
+      // Field values are compared with the raw `>` the grammar has always used,
+      // which orders mixed scalars by javascript's own rules.
+      return (aValue as number) > (bValue as number)
+        ? ascending
+        : -1 * ascending;
     });
   }
 
   return leaves;
 }
 
-export function getSharingDomain(container: Container): Container[] {
-  if (isContainer(container)) {
-    const leafs: Container[] = [];
-    container.contents.forEach(function(c) {
+export function getSharingDomain(node: ContainerChild): ContainerChild[] {
+  if (isContainer(node)) {
+    const leafs: ContainerChild[] = [];
+    node.contents.forEach(function (c) {
       const newLeaves = getSharingDomain(c);
 
-      newLeaves.forEach(function(d) {
+      newLeaves.forEach(function (d) {
         leafs.push(d);
       });
     });
     return leafs;
   } else {
-    return [container];
+    return [node];
   }
 }
 
-export function makeContainers(container: Container, layout: Layout): Container[] {
-  const sharingAncestorContainer = getSharingAncestorContainer(container, layout, 'subgroup');
+export function makeContainers(
+  container: Container,
+  layout: Layout,
+): Container[] {
+  const sharingAncestorContainer = getSharingAncestorContainer(
+    container,
+    layout,
+    "subgroup",
+  );
 
   const sharingDomain = getSharingDomain(sharingAncestorContainer);
-  let childContainers;
 
   switch (layout && layout.subgroup && layout.subgroup.type) {
-    case 'groupby':
-      childContainers = makeContainersForCategoricalVar(sharingDomain, container, layout);
-      break;
-    case 'bin':
-      childContainers = makeContainersForNumericalVar(sharingDomain, container, layout);
-      break;
-    case 'passthrough':
-      childContainers = makeContainersForPassthrough(container);
-      break;
-    case 'flatten':
-      childContainers = makeContainersForFlatten(container, layout);
-      break;
+    case "groupby":
+      return makeContainersForCategoricalVar(sharingDomain, container, layout);
+    case "bin":
+      return makeContainersForNumericalVar(sharingDomain, container, layout);
+    case "passthrough":
+      return makeContainersForPassthrough(container);
+    case "flatten":
+      return makeContainersForFlatten(container, layout);
+    default:
+      return [];
   }
-
-  return childContainers;
 }

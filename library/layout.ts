@@ -1,5 +1,5 @@
-import {min, scan} from 'd3-array';
-import {Layout, Container, EdgeInfo} from '../index.d';
+import {maxIndex, min, minIndex} from 'd3-array';
+import type {Container, EdgeInfo, Layout} from './index.d';
 import treemapMultidimensional from './treemap';
 import {makeContainers} from './container';
 import {
@@ -12,6 +12,7 @@ import {
   calcFillGridxyVisualSpaceWithUnitLength,
   getSharingAncestorContainer,
   calcPackGridxyVisualSpaceWithUnitLength,
+  asRow,
 } from './utils';
 
 // add linked list connections across layouts
@@ -42,7 +43,7 @@ function buildEdgeInfoByDirection(
   height: number,
   layout: Layout,
 ): EdgeInfo {
-  const isVert = isVerticalDirection(layout.direction);
+  const isVert = isVerticalDirection(layout.direction!);
   return {
     fillingEdgeRepetitionCount: isVert ? horizontalRepetitionCount : verticalRepetitionCount,
     remainingEdgeRepetitionCount: isVert ? verticalRepetitionCount : horizontalRepetitionCount,
@@ -59,21 +60,20 @@ function buildEdgeInfoForMaxFill(
   const combinations = getCombination(childContainers.length);
 
   const combinationForWidthAndHeight = combinations.map(function(d) {
+    const width = parentContainer.visualspace.width / d.a;
+    const height = parentContainer.visualspace.height / d.b;
     return {
-      width: parentContainer.visualspace.width / d.a,
-      height: parentContainer.visualspace.height / d.b,
+      width,
+      height,
       horizontalRepetitionCount: d.a,
       verticalRepetitionCount: d.b,
+      minEdge: width > height ? height : width,
     };
   });
 
-  combinationForWidthAndHeight.forEach(function(d: any) {
-    d.minEdge = d.width > d.height ? d.height : d.width;
-  });
-
-  const minCombi = scan(combinationForWidthAndHeight, function(a: any, b: any) {
-    return b.minEdge - a.minEdge;
-  });
+  // The grid that leaves the units as large as possible is the one whose
+  // shorter edge is longest.
+  const minCombi = maxIndex(combinationForWidthAndHeight, d => d.minEdge);
 
   const edgeInfo = combinationForWidthAndHeight[minCombi];
 
@@ -109,8 +109,16 @@ function applySharedSizeOnContainers(minSize: {height: number; width: number}, l
   parentContainers.forEach(function(c: Container) {
     const edgeInfo = buildEdgeInfoFromMinSize(c, minSize, layout);
 
-    applyEdgeInfo(c, c.contents, layout, edgeInfo);
+    applyEdgeInfo(c, childrenOf(c), layout, edgeInfo);
   });
+}
+
+/**
+ * The size-sharing group is gathered from levels that have already been split,
+ * so every container in it holds further containers rather than data rows.
+ */
+function childrenOf(container: Container): Container[] {
+  return container.contents as Container[];
 }
 
 function applySharedUnitOnContainers(minUnit: number, layout: Layout): void {
@@ -120,13 +128,13 @@ function applySharedUnitOnContainers(minUnit: number, layout: Layout): void {
     switch (layout.aspect_ratio) {
       case 'fillX':
       case 'fillY':
-        calcFillGridxyVisualSpaceWithUnitLength(d, d.contents, layout, minUnit);
+        calcFillGridxyVisualSpaceWithUnitLength(d, childrenOf(d), layout, minUnit);
         break;
       case 'square':
       case 'parent':
       case 'custom':
       case 'maxfill':
-        calcPackGridxyVisualSpaceWithUnitLength(d, d.contents, layout, minUnit);
+        calcPackGridxyVisualSpaceWithUnitLength(d, childrenOf(d), layout, minUnit);
     }
   });
 }
@@ -134,73 +142,65 @@ function getMinUnitAmongContainers(layout: Layout): number {
   const parentContainers = getParents(layout.sizeSharingGroup);
 
   return min(parentContainers, (d: Container): number => {
-    return getUnit(getAvailableSpace(d, layout), d.contents, layout);
-  });
+    return getUnit(getAvailableSpace(d, layout), childrenOf(d), layout);
+  })!;
 }
 
 function makeSharedSizeFill(layout: Layout): void {
   applySharedUnitOnContainers(getMinUnitAmongContainers(layout), layout);
 }
 function getMinAmongContainers(layout: Layout): {height: number; width: number} {
-  const sharedContainers = layout.sizeSharingGroup;
+  const sharedContainers = layout.sizeSharingGroup!;
 
-  let minSizeItemIndex;
+  // Packing wants the smallest box in the group, so that one unit size fits
+  // every container. `maxfill` boxes vary in both axes at once, so they are
+  // ranked on their shorter edge first and their longer edge as a tiebreak;
+  // the other ratios keep their aspect and can be ranked on width alone.
+  if (layout.aspect_ratio === 'maxfill') {
+    const minContainer = sharedContainers.reduce(function(pre: Container, cur: Container) {
+      let minPre, maxPre, minCur, maxCur;
 
-  switch (layout.aspect_ratio) {
-    case 'square':
-    case 'parent':
-    case 'custom':
-      minSizeItemIndex = scan(sharedContainers, function(a: Container, b: Container) {
-        return a.visualspace.width - b.visualspace.width;
-      });
-      return {
-        width: sharedContainers[minSizeItemIndex].visualspace.width,
-        height: sharedContainers[minSizeItemIndex].visualspace.height,
-      };
-    case 'maxfill':
-      const tempMinorSide = sharedContainers.map(function(d: Container) {
-        return d.visualspace.width > d.visualspace.height ? d.visualspace.height : d.visualspace.width;
-      });
-      minSizeItemIndex = scan(tempMinorSide, (a, b) => a - b);
+      if (pre.visualspace.height > pre.visualspace.width) {
+        minPre = pre.visualspace.width;
+        maxPre = pre.visualspace.height;
+      } else {
+        minPre = pre.visualspace.height;
+        maxPre = pre.visualspace.width;
+      }
 
-      const minContainer = sharedContainers.reduce(function(pre: any, cur: Container) {
-        let minPre, maxPre, minCur, maxCur;
+      if (cur.visualspace.height > cur.visualspace.width) {
+        minCur = cur.visualspace.width;
+        maxCur = cur.visualspace.height;
+      } else {
+        minCur = cur.visualspace.height;
+        maxCur = cur.visualspace.width;
+      }
 
-        if (pre.visualspace.height > pre.visualspace.width) {
-          minPre = pre.visualspace.width;
-          maxPre = pre.visualspace.height;
-        } else {
-          minPre = pre.visualspace.height;
-          maxPre = pre.visualspace.width;
-        }
-
-        if (cur.visualspace.height > cur.visualspace.width) {
-          minCur = cur.visualspace.width;
-          maxCur = cur.visualspace.height;
-        } else {
-          minCur = cur.visualspace.height;
-          maxCur = cur.visualspace.width;
-        }
-
-        if (minCur < minPre) {
+      if (minCur < minPre) {
+        return cur;
+      } else if (minCur == minPre) {
+        if (maxCur < maxPre) {
           return cur;
-        } else if (minCur == minPre) {
-          if (maxCur < maxPre) {
-            return cur;
-          }
         }
-        return pre;
-      });
+      }
+      return pre;
+    });
 
-      return {
-        width: minContainer.visualspace.width,
-        height: minContainer.visualspace.height,
-      };
+    return {
+      width: minContainer.visualspace.width,
+      height: minContainer.visualspace.height,
+    };
   }
+
+  const minSizeItemIndex = minIndex(sharedContainers, d => d.visualspace.width);
+  return {
+    width: sharedContainers[minSizeItemIndex].visualspace.width,
+    height: sharedContainers[minSizeItemIndex].visualspace.height,
+  };
 }
 
 function makeSharedSizePack(layout: Layout): void {
-  if (layout.size.type === 'uniform') {
+  if (layout.size!.type === 'uniform') {
     applySharedSizeOnContainers(getMinAmongContainers(layout), layout);
   } else {
     applySharedUnitOnContainers(getMinUnitAmongContainers(layout), layout);
@@ -227,7 +227,7 @@ function applySharedSize(layout: Layout | string): void {
     return;
   }
   const isString = typeof layout === 'string';
-  if ((isString && layout === 'EndOfLayout') || (layout as Layout).size.isShared !== true) {
+  if ((isString && layout === 'EndOfLayout') || (layout as Layout).size!.isShared !== true) {
     return;
   }
 
@@ -248,11 +248,11 @@ function calcFillGridxyVisualSpace(
 }
 
 function handleSharedSize(container: Container, layout: Layout): void {
-  if (layout && layout.size.isShared) {
-    if (!layout.hasOwnProperty('sizeSharingGroup')) {
+  if (layout && layout.size!.isShared) {
+    if (!Object.hasOwn(layout, 'sizeSharingGroup')) {
       layout.sizeSharingGroup = [];
     }
-    layout.sizeSharingGroup = layout.sizeSharingGroup.concat(container.contents);
+    layout.sizeSharingGroup = layout.sizeSharingGroup!.concat(childrenOf(container));
   }
 }
 
@@ -297,7 +297,7 @@ function calcEdgeInfo(
   layout: Layout,
   aspectRatio: number,
 ): EdgeInfo {
-  if (isVerticalDirection(layout.direction)) {
+  if (isVerticalDirection(layout.direction!)) {
     return getRepetitionCountForFillingEdge(
       parentContainer.visualspace.width,
       parentContainer.visualspace.height,
@@ -319,7 +319,9 @@ function calcPackGridxyVisualSpace(
   childContainers: Container[],
   layout: Layout,
 ): void {
-  let aspectRatio;
+  // `custom` reaches here too, but the grammar has no field to supply its
+  // ratio; NaN leaves its containers unsized, as documented.
+  let aspectRatio = NaN;
 
   switch (layout.aspect_ratio) {
     case 'square':
@@ -347,17 +349,20 @@ function calcPackGridxyMaxFillVisualSpaceFunction(
   childContainers: Container[],
   layout: Layout,
 ): void {
+  // A treemap level reads its weight off the first row of each child, so this
+  // path expects a `flatten` above it, where each child holds exactly one row.
+  const key = layout.size!.key!;
+  const weightOf = (c: Container): number => Number(asRow(c.contents[0])[key]);
+
   childContainers = childContainers.filter(function(d) {
-    return Number(d['contents'][0][layout.size.key] > 0);
+    return weightOf(d) > 0;
   });
 
   childContainers.sort(function(c, d) {
-    return d['contents'][0][layout.size.key] - c['contents'][0][layout.size.key];
+    return weightOf(d) - weightOf(c);
   });
 
-  const data = childContainers.map(function(d) {
-    return Number(d['contents'][0][layout.size.key]);
-  });
+  const data = childContainers.map(weightOf);
 
   const coord = treemapMultidimensional(
     data,
@@ -371,7 +376,7 @@ function calcPackGridxyMaxFillVisualSpaceFunction(
     c.visualspace.height = rect[3] - rect[1];
     c.visualspace.posX = rect[0];
     c.visualspace.posY = rect[1];
-    c.visualspace.padding = layout.padding;
+    c.visualspace.padding = layout.padding!;
   });
 }
 
@@ -380,7 +385,7 @@ function calcPackGridxyMaxFillVisualSpace(
   childContainers: Container[],
   layout: Layout,
 ): void {
-  if (layout.size.type === 'uniform') {
+  if (layout.size!.type === 'uniform') {
     calcPackGridxyMaxFillVisualSpaceUniform(parentContainer, childContainers, layout);
   } else {
     calcPackGridxyMaxFillVisualSpaceFunction(parentContainer, childContainers, layout);
@@ -422,17 +427,16 @@ function calcVisualSpace(parentContainer: Container, childContainers: Container[
 
 export function applyLayout(containerList: Container[], layout: Layout): Container[] {
   let childContainers: Container[] = [];
-  let newSizeSharingAncestor;
   let oldSizeSharingAncestor = getSharingAncestorContainer(containerList[0], layout, 'size');
 
   containerList.forEach(function(container) {
-    newSizeSharingAncestor = getSharingAncestorContainer(container, layout, 'size');
+    const newSizeSharingAncestor = getSharingAncestorContainer(container, layout, 'size');
     if (newSizeSharingAncestor !== oldSizeSharingAncestor) {
       applySharedSize(layout);
       oldSizeSharingAncestor = newSizeSharingAncestor;
     }
 
-    const newContainers = makeContainers(container, layout) || [];
+    const newContainers = makeContainers(container, layout);
 
     if (newContainers.length > 0) {
       calcVisualSpace(container, newContainers, layout);

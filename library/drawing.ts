@@ -2,13 +2,32 @@ import {defaultSetting} from './constants';
 import {min} from 'd3-array';
 import {scaleOrdinal} from 'd3-scale';
 import {select} from 'd3-selection';
+import type {BaseType, Selection} from 'd3-selection';
 import * as schemes from 'd3-scale-chromatic';
-import {Container, Spec, Layout, Mark} from './index.d';
+import {asRow} from './utils';
+import type {Container, Spec, Layout, Mark} from './index.d';
+
+/**
+ * One level of `<g>` elements, each bound to the container it draws. Successive
+ * levels have different parent element types, so the loop below re-labels its
+ * selection rather than threading the parent through the type.
+ */
+type LevelSelection = Selection<SVGGElement, Container, BaseType, unknown>;
+
+type SchemeName = NonNullable<Mark['color']['scheme']>;
+
+/**
+ * Every level but the deepest holds further containers, and this only ever
+ * walks the levels a layout produced.
+ */
+function childrenOf(container: Container): Container[] {
+  return container.contents as Container[];
+}
 
 function buildLeafContainersArr(container: Container, layout: Layout): Container[] {
   if (layout && layout.child !== 'EndOfLayout') {
-    const leafs: any[] = [];
-    container.contents.forEach(function(c: any) {
+    const leafs: Container[] = [];
+    childrenOf(container).forEach(function(c) {
       const childLayout = typeof layout === 'string' ? null : layout.child;
       if (!childLayout) {
         return;
@@ -21,27 +40,32 @@ function buildLeafContainersArr(container: Container, layout: Layout): Container
     });
     return leafs;
   } else {
-    return container.contents;
+    return childrenOf(container);
   }
 }
 
-function setMarksColor(marks: any, rootContainer: Container, markPolicy: Mark): void {
-  const color = scaleOrdinal((schemes as any)[markPolicy.color.scheme || 'schemeCategory10']);
+/** One shape per leaf container, so one per data row. */
+function setMarksColor<GElement extends BaseType>(
+  marks: Selection<GElement, Container, BaseType, unknown>,
+  markPolicy: Mark,
+): void {
+  const palettes = schemes as unknown as Record<SchemeName, readonly string[]>;
+  const color = scaleOrdinal(palettes[markPolicy.color.scheme || 'schemeCategory10']);
   if (markPolicy.color.type === 'categorical') {
     console.log('continue');
   } else {
     console.log('TODO');
   }
-  marks.style('fill', (d: any) => {
-    return color(d.contents[0][markPolicy.color.key]);
+  marks.style('fill', d => {
+    return color(String(asRow(d.contents[0])[markPolicy.color.key]));
   });
 }
 
-function calcRadiusIsolated(leafContainer: Container, markPolicy: any): number {
+function calcRadiusIsolated(leafContainer: Container, markPolicy: Mark): number {
   const width = leafContainer.visualspace.width;
   const height = leafContainer.visualspace.height;
 
-  if (markPolicy.size.type === 'max') {
+  if (markPolicy.size!.type === 'max') {
     return width > height ? height / 2.0 : width / 2.0;
   } else {
     // AM: HACK THIS 0 MIGHT BREAK THINGS
@@ -50,12 +74,13 @@ function calcRadiusIsolated(leafContainer: Container, markPolicy: any): number {
 }
 
 function calcRadiusShared(
-  leafContainer: Container,
   rootContainer: Container,
   markPolicy: Mark,
   layoutList: {head: Layout},
 ): number {
-  return min(buildLeafContainersArr(rootContainer, layoutList.head), d => calcRadiusIsolated(d, markPolicy));
+  return min(buildLeafContainersArr(rootContainer, layoutList.head), d =>
+    calcRadiusIsolated(d, markPolicy),
+  )!;
 }
 
 function calcRadius(
@@ -64,8 +89,8 @@ function calcRadius(
   markPolicy: Mark,
   layoutList: {head: Layout},
 ): number {
-  if (markPolicy.size.isShared) {
-    return calcRadiusShared(leafContainer, rootContainer, markPolicy, layoutList);
+  if (markPolicy.size!.isShared) {
+    return calcRadiusShared(rootContainer, markPolicy, layoutList);
   } else {
     return calcRadiusIsolated(leafContainer, markPolicy);
   }
@@ -73,14 +98,14 @@ function calcRadius(
 
 export function drawUnit(container: Container, spec: Spec, layoutList: {head: Layout}, divId: string): void {
   const layouts = spec.layouts;
-  const markPolicy = spec.mark;
+  const markPolicy = spec.mark!;
 
   const svg = select('#' + divId)
     .append('svg')
-    .attr('width', spec.width)
-    .attr('height', spec.height);
+    .attr('width', spec.width!)
+    .attr('height', spec.height!);
 
-  const rootGroup = svg
+  const rootGroup: LevelSelection = svg
     .selectAll('.root')
     .data([container])
     .enter()
@@ -90,14 +115,23 @@ export function drawUnit(container: Container, spec: Spec, layoutList: {head: La
 
   let currentGroup = rootGroup;
   layouts.forEach(function(layout) {
-    const tempGroup = currentGroup
+    // The box each container is drawn in, with the level's own styling filled
+    // in from the library defaults wherever the layout left it out.
+    const box = {
+      opacity: layout.box?.opacity ?? defaultSetting.layout.box.opacity,
+      fill: layout.box?.fill ?? defaultSetting.layout.box.fill,
+      stroke: layout.box?.stroke ?? defaultSetting.layout.box.stroke,
+      'stroke-width': layout.box?.['stroke-width'] ?? defaultSetting.layout.box['stroke-width'],
+    };
+
+    const tempGroup: LevelSelection = currentGroup
       .selectAll('.' + layout.name)
       .data(function(d) {
-        return d.contents;
+        return childrenOf(d);
       })
       .enter()
       .append('g')
-      .attr('class', layout.name)
+      .attr('class', layout.name!)
       .attr('transform', ({visualspace: {posX, posY}}) => {
         if (isNaN(posX) || isNaN(posY)) {
           console.log('NaN happened');
@@ -112,60 +146,30 @@ export function drawUnit(container: Container, spec: Spec, layoutList: {head: La
       .attr('y', 0)
       .attr('width', d => d.visualspace.width)
       .attr('height', d => d.visualspace.height)
-      .style('opacity', () => {
-        if (layout.hasOwnProperty('box') && layout.box.hasOwnProperty('opacity')) {
-          return layout.box.opacity;
-        } else {
-          return defaultSetting.layout.box.opacity;
-        }
-      })
-      .style('fill', () => {
-        if (layout.hasOwnProperty('box') && layout.box.hasOwnProperty('fill')) {
-          return layout.box.fill;
-        } else {
-          return defaultSetting.layout.box.fill;
-        }
-      })
-      .style('stroke', () => {
-        if (layout.hasOwnProperty('box') && layout.box.hasOwnProperty('stroke')) {
-          return layout.box.stroke;
-        } else {
-          return defaultSetting.layout.box.stroke;
-        }
-      })
-      .style('stroke-width', () => {
-        if (layout.hasOwnProperty('box') && layout.box.hasOwnProperty('stroke-width')) {
-          return layout.box['stroke-width'];
-        } else {
-          return defaultSetting.layout.box['stroke-width'];
-        }
-      });
+      .style('opacity', box.opacity)
+      .style('fill', box.fill)
+      .style('stroke', box.stroke)
+      .style('stroke-width', box['stroke-width']);
 
-    // @ts-ignore
     currentGroup = tempGroup;
   });
 
-  let marks = null;
-  switch (markPolicy.shape) {
-    case 'rect':
-      marks = currentGroup
-        .append('rect')
-        .attr('x', 0)
-        .attr('y', 0)
-        .attr('width', d => d.visualspace.width)
-        .attr('height', d => d.visualspace.height)
-        .style('fill', 'purple');
-      break;
-    case 'circle':
-    default:
-      marks = currentGroup
-        .append('circle')
-        .attr('cx', d => d.visualspace.width / 2)
-        .attr('cy', d => d.visualspace.height / 2)
-        .attr('r', d => calcRadius(d, container, markPolicy, layoutList))
-        .style('fill', 'purple');
-      break;
+  if (markPolicy.shape === 'rect') {
+    const marks = currentGroup
+      .append('rect')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', d => d.visualspace.width)
+      .attr('height', d => d.visualspace.height)
+      .style('fill', 'purple');
+    setMarksColor(marks, markPolicy);
+  } else {
+    const marks = currentGroup
+      .append('circle')
+      .attr('cx', d => d.visualspace.width / 2)
+      .attr('cy', d => d.visualspace.height / 2)
+      .attr('r', d => calcRadius(d, container, markPolicy, layoutList))
+      .style('fill', 'purple');
+    setMarksColor(marks, markPolicy);
   }
-
-  setMarksColor(marks, container, markPolicy);
 }
