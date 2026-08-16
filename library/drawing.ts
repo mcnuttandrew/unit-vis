@@ -3,7 +3,7 @@ import {min} from 'd3-array';
 import {scaleOrdinal} from 'd3-scale';
 import {select} from 'd3-selection';
 import * as schemes from 'd3-scale-chromatic';
-import {Container, Spec, Layout, Mark} from '../index.d';
+import {Container, Spec, Layout, Mark} from './index.d';
 
 function buildLeafContainersArr(container: Container, layout: Layout): Container[] {
   if (layout && layout.child !== 'EndOfLayout') {

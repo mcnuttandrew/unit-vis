@@ -29,10 +29,7 @@
           "type": "array"
         },
         "label": {
-          "type": [
-            "string",
-            "number"
-          ]
+          "type": ["string", "number"]
         },
         "layout": {
           "anyOf": [
@@ -146,7 +143,7 @@
               "type": "string"
             },
             "stroke-width": {
-              "type": "string"
+              "type": "number"
             }
           },
           "type": "object"
@@ -198,11 +195,7 @@
               "type": "string"
             },
             "type": {
-              "enum": [
-                "count",
-                "sum",
-                "uniform"
-              ],
+              "enum": ["count", "sum", "uniform"],
               "type": "string"
             }
           },
@@ -212,19 +205,14 @@
         "sort": {
           "properties": {
             "direction": {
-              "enum": [
-                "ascending",
-                "descending"
-              ],
+              "enum": ["ascending", "descending"],
               "type": "string"
             },
             "key": {
               "type": "string"
             },
             "type": {
-              "enum": [
-                "numerical"
-              ],
+              "enum": ["numerical"],
               "type": "string"
             }
           },
@@ -269,9 +257,7 @@
               "description": "The color scheme for coloring the nodes,\nallowed values: schemeCategory10, schemeAccent, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10\nDefaults to schemeCategory10"
             },
             "type": {
-              "enum": [
-                "categorical"
-              ],
+              "enum": ["categorical"],
               "type": "string"
             }
           },
@@ -279,10 +265,7 @@
         },
         "shape": {
           "description": "The final share to be shown, either circle or rect",
-          "enum": [
-            "circle",
-            "rect"
-          ],
+          "enum": ["circle", "rect"],
           "type": "string"
         },
         "size": {
@@ -334,11 +317,7 @@
       "type": "string"
     },
     "SizePolicies": {
-      "enum": [
-        "count",
-        "sum",
-        "uniform"
-      ],
+      "enum": ["count", "sum", "uniform"],
       "type": "string"
     },
     "Spec": {
@@ -384,9 +363,7 @@
                   "description": "The color scheme for coloring the nodes,\nallowed values: schemeCategory10, schemeAccent, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10\nDefaults to schemeCategory10"
                 },
                 "type": {
-                  "enum": [
-                    "categorical"
-                  ],
+                  "enum": ["categorical"],
                   "type": "string"
                 }
               },
@@ -394,10 +371,7 @@
             },
             "shape": {
               "description": "The final share to be shown, either circle or rect",
-              "enum": [
-                "circle",
-                "rect"
-              ],
+              "enum": ["circle", "rect"],
               "type": "string"
             },
             "size": {
@@ -451,25 +425,12 @@
     },
     "aspectRatio": {
       "description": "The allowed aspect ratios. Includes square, parents, fillX, fillY, maxfill, and custom.",
-      "enum": [
-        "custom",
-        "fillX",
-        "fillY",
-        "maxfill",
-        "parent",
-        "square"
-      ],
+      "enum": ["custom", "fillX", "fillY", "maxfill", "parent", "square"],
       "type": "string"
     },
     "layoutTypes": {
       "description": "The allowed types of layouts, options include flatten, groupby, bin, passthrough, gridxy",
-      "enum": [
-        "bin",
-        "flatten",
-        "gridxy",
-        "groupby",
-        "passthrough"
-      ],
+      "enum": ["bin", "flatten", "gridxy", "groupby", "passthrough"],
       "type": "string"
     }
   },
