@@ -1,7 +1,25 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    // The suite drives the browser code from node: jsdom for the document, node
+    // for reading datasets off disk, and vite for `import.meta.glob`.
+    "types": ["node", "vite/client"],
+    "resolveJsonModule": true,
+
+    /* Bundler mode: everything here runs through vite (vitest, vite-node). */
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    "paths": {
+      "@unit-vis/core": ["./packages/core/src/index.ts"],
+      "@unit-vis/core/schema": ["./packages/core/unit-vis-schema.json"],
+      "unit-vis": ["./packages/unit-vis/src/index.ts"],
+      "unit-vis-vega": ["./packages/unit-vis-vega/src/index.ts"]
+    }
+  },
+  "include": ["test", "scripts", "vitest.config.ts", "apps/playground/vite.config.ts"]
 }

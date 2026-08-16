@@ -16,18 +16,18 @@ import {rmSync, writeFileSync} from 'node:fs';
 import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import type {Spec} from '../library/index.d';
+import type {Spec} from '@unit-vis/core';
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const keepTs = args.includes('--keep-ts');
 
 const repoRoot = resolve(fileURLToPath(import.meta.url), '../..');
-const specsDir = join(repoRoot, 'src/specs');
+const specsDir = join(repoRoot, 'apps/playground/src/specs');
 
 // Eager rather than lazy: the glob is resolved at transform time, which is what
 // lets a script running under vite-node import TypeScript spec modules at all.
-const modules = import.meta.glob<{default?: Spec}>('../src/specs/*.ts', {eager: true});
+const modules = import.meta.glob<{default?: Spec}>('../apps/playground/src/specs/*.ts', {eager: true});
 
 /**
  * `$schema` is written last in the TS sources, where it reads as a trailing

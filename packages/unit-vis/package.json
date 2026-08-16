@@ -1,0 +1,45 @@
+{
+  "name": "unit-vis",
+  "version": "0.1.0",
+  "description": "Declarative unit charts, drawn with d3",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "unit chart",
+    "visualization",
+    "grammar",
+    "d3"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@unit-vis/core": "0.1.0",
+    "d3-scale": "^4.0.2",
+    "d3-scale-chromatic": "^3.1.0",
+    "d3-selection": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-scale-chromatic": "^3.1.0",
+    "@types/d3-selection": "^3.0.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcnuttandrew/unit-vis.git",
+    "directory": "packages/unit-vis"
+  }
+}

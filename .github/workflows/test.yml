@@ -17,9 +17,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm install --no-audit --no-fund
-      - run: npm test
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn test
 
   lint:
     runs-on: ubuntu-latest
@@ -28,9 +28,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm install --no-audit --no-fund
-      - run: npm run lint
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn lint
 
   build:
     runs-on: ubuntu-latest
@@ -39,6 +39,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm install --no-audit --no-fund
-      - run: npm run build
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      # Builds all three packages, typechecks the workspace, then builds the
+      # playground against the packages' sources.
+      - run: yarn build

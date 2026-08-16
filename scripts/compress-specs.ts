@@ -24,10 +24,10 @@ const formatter = new Formatter();
 formatter.Options = options;
 
 async function main() {
-  const allSpecs = JSON.parse(readFileSync("public/specs.json", "utf-8"));
+  const allSpecs = JSON.parse(readFileSync("apps/playground/public/specs.json", "utf-8"));
 
   for (const spec of allSpecs) {
-    const specFilePath = `src/specs/${spec}`;
+    const specFilePath = `apps/playground/src/specs/${spec}`;
     const specFileContent = readFileSync(specFilePath, "utf-8");
     // const specJson = JSON.parse(specFileContent);
     const compressed = formatter.Reformat(specFileContent);

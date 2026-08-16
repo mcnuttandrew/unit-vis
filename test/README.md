@@ -1,7 +1,7 @@
 # Backend comparison harness
 
-Renders every spec in `src/specs` through both drawing backends inside jsdom and
-compares the SVG they produce.
+Renders every spec in `apps/playground/src/specs` through both drawing backends
+inside jsdom and compares the SVG they produce.
 
 ```
 yarn test                 # run the suite
@@ -13,18 +13,20 @@ yarn report:svg --rows 40 # explicit sample size
 
 ## How it works
 
-`library/index.ts` exports `buildScene`, which runs defaults → data → layout and
+`@unit-vis/core` exports `buildScene`, which runs defaults → data → layout and
 returns the container tree. Both backends draw from that *same* tree, so
 anything the comparison sees is a drawing difference, never a layout difference.
+The suite imports the packages by name (`unit-vis`, `unit-vis-vega`) and vitest
+resolves those to their sources, so it can never pass against a stale build.
 
-- `harness/render.ts` — loads a spec's CSV off disk (parsed exactly as `d3-fetch`
-  would at runtime), builds the scene, and draws it:
+- `harness/render.ts` — loads a spec's CSV off disk (through the library's own
+  `parseCsv`, the same one it uses at runtime), builds the scene, and draws it:
   - `renderOld` → `drawUnit` → d3-selection → jsdom document
-  - `renderVegaEmbedded` → `drawUnitVega` → vega-embed → jsdom document (the real
-    browser path)
+  - `renderVegaEmbedded` → `drawUnitVega` → a live `vega.View` mounted in the
+    jsdom document (the real browser path)
   - `renderVegaHeadless` → `buildVegaSpec` → `vega.View(...).toSVG()` (same
-    markup without vega-embed's chrome; what the bulk checks measure, verified
-    against the embedded path in `svg-quality.test.ts`)
+    markup, minus the wrapper element vega mounts; what the bulk checks measure,
+    verified against the embedded path in `svg-quality.test.ts`)
 - `harness/svg-model.ts` — flattens either document into the same list of
   primitives in absolute canvas coordinates. The old backend nests
   `<g transform="translate(..)">` around `<rect>`/`<circle>`; vega emits flat
@@ -58,8 +60,7 @@ in `buildVegaSpec`. **Renaming those marks will break the harness** — update
   dataflow warnings, and the embedded path matching the headless one. Checks
   where the old backend is itself sloppy are comparative — vega must be no
   worse.
-- `color-scheme.test.ts` — `mark.color.scheme`, which no spec in `src/specs`
-  sets. Specs name schemes the d3 way (`schemeDark2`) and vega's registry uses
+- `color-scheme.test.ts` — `mark.color.scheme`, which no bundled spec sets. Specs name schemes the d3 way (`schemeDark2`) and vega's registry uses
   the bare name, so `buildVegaSpec` translates; this pins the palettes both
   backends land on, including the one case where the two registries disagree.
 

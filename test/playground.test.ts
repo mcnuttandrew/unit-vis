@@ -2,9 +2,9 @@ import {afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {act, createElement} from 'react';
 import {createRoot, type Root as ReactRoot} from 'react-dom/client';
 
-import Editor from '../src/Editor';
-import Root from '../src/root';
-import {defaultSpecName, options} from '../src/specs';
+import Editor from '../apps/playground/src/Editor';
+import Root from '../apps/playground/src/root';
+import {defaultSpecName, options} from '../apps/playground/src/specs';
 
 /**
  * Guards the playground shell rather than the drawing backends: that the
@@ -77,8 +77,8 @@ describe('playground', () => {
 
     expect(host.querySelector('.default-chooser select')).toBeTruthy();
     expect(host.querySelector('#spec-editor .cm-editor')).toBeTruthy();
-    expect(host.querySelector('#old-target')).toBeTruthy();
-    expect(host.querySelector('#new-target')).toBeTruthy();
+    expect(host.querySelector('#d3-target')).toBeTruthy();
+    expect(host.querySelector('#vega-target')).toBeTruthy();
     // The editor starts on the spec the chooser is showing, not on `{}`.
     expect(host.querySelector('.cm-content')?.textContent).toContain('layouts');
     expect(host.querySelector('.error-bar')).toBeNull();

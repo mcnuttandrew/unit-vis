@@ -1,0 +1,30 @@
+{
+  "name": "@unit-vis/core",
+  "version": "0.1.0",
+  "description": "The unit-vis grammar and layout engine, with no renderer and no dependencies",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema": "./unit-vis-schema.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "unit-vis-schema.json"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcnuttandrew/unit-vis.git",
+    "directory": "packages/core"
+  }
+}
