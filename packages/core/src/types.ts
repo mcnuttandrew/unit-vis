@@ -253,44 +253,94 @@ export type Mark = {
 };
 
 /**
- * Text drawn next to each layout container, reading the container's own label:
- * the group value for a `groupby` subgroup, the `low-high` range for a `bin`
- * one. This is how a unit chart gets its axis-like annotations — the grammar
- * has no axes, only labelled containers.
+ * An axis per layout level, drawn outside the chart and read off that level's
+ * containers: a tick per group, labelled the way the container is — the group
+ * value for a `groupby` subgroup, the bin's own lower edge for a `bin` one, so
+ * a histogram reads as a number line rather than as a column of ranges. The
+ * axis is titled with the field the level splits on.
+ *
+ * This is how a unit chart gets its axes. The grammar itself has none: what a
+ * level divides space along, and where it puts each group, is decided by the
+ * data in it, so the axis is derived from the layout after the fact rather than
+ * being a scale the layout was drawn against.
+ *
+ * A level split on the same field the marks are colored by is left out, since
+ * `legend` already names those groups — a chart that splits by species and
+ * colors by species has said species once, and does not need two guides for
+ * it. Turning the legend off, or naming that level in `layouts`, brings its
+ * axis back.
+ *
+ * An axis describes one thing: a run of groups along one direction, each in
+ * one place. Their spacing may vary from parent to parent — a mosaic's splits
+ * are sized by what is in them, so a tick stands for containers that do not
+ * quite line up and sits at their middle — but their order does not. A level
+ * that puts its groups anywhere else is named a different way, since it cannot
+ * be ticked off an edge:
+ *
+ * - A level that packs its groups into a grid has each of them somewhere of
+ *   its own, so each is named over its own cell, the way a table of small
+ *   multiples is headed. The heading carries a rule to the far edge of its
+ *   cell, since nothing else in the chart need show where one cell ends: a
+ *   level is free to draw no outline, and the gaps between its cells are the
+ *   same gaps the levels inside them leave between their own groups.
+ * - A level laid out inside an ancestor that already spread its groups the
+ *   same way is the same run repeated in every one of that ancestor's cells.
+ *   It is named once, on the copy against the edge it runs along.
+ *
+ * Either way the text sits by the containers rather than outside the chart, so
+ * a label needs room in the container it names, and a level is labelled only
+ * where most of its containers have that room. Half named and half not says
+ * more about how the layout fell than about the data, so such a level is left
+ * alone. The field it splits on is named beside the chart, where an axis would
+ * title it.
  *
  * Vega backend only. The old (d3) backend ignores it.
  */
 export interface Labels {
   /**
-   * Which side of the container box the text sits on. `left`/`right` place it
-   * outside the vertical edges, `top`/`bottom` outside the horizontal ones.
+   * Which side to read every level from, overriding the side each would take
+   * on its own.
    *
-   * @default "bottom"
+   * Left unset — the usual case — each level takes the side it divides space
+   * along: a `fillX` level is read along the bottom, a `fillY` level up the
+   * left, and a level that packs its groups is headed from the top. Levels
+   * read against the same side are stacked outward, the deepest one closest to
+   * the chart.
    */
   orient?: "top" | "bottom" | "left" | "right";
   /**
-   * Restrict labelling to specific layout levels, by `layout.name`. A layout
-   * with no `name` can never be selected this way.
+   * Annotate these layout levels, by `layout.name`, instead of the ones picked
+   * by default. A layout with no `name` can never be selected this way.
    *
-   * Left unset, every layout that actually names its groups gets labelled,
-   * which means every `groupby` and every `bin` subgroup. `flatten` levels are
-   * skipped by default because their labels are row indices.
+   * Naming levels overrides what the default selection leaves out: levels that
+   * do not name their groups, which is a `flatten` level and its row indices —
+   * a `groupby` on `id` included, since the engine's own row index makes that
+   * the same thing; the level split on the field `legend` already explains,
+   * which would name the same groups a second time; and all but the outermost
+   * of the levels labelled over the chart, which would otherwise write into
+   * each other's margins. It does not override what a level gets — an axis or
+   * labels is a fact about how the level laid its groups out, not about how it
+   * was picked — nor whether there is room to draw it.
    */
   layouts?: string[];
   /**
-   * Gap in pixels between the container edge and the text.
+   * Gap in pixels between the chart and the axis nearest it. Labels drawn
+   * against a container take it as a maximum, since the room they have is
+   * whatever their level's `margin` left between one container and the next.
    *
    * @default 4
    */
   offset?: number;
   /**
-   * Type size of the label text, in pixels.
+   * Type size of the tick and label text, in pixels. Axis titles are drawn one
+   * pixel larger. It also decides what fits: a label whose container is
+   * narrower than its text at this size is not drawn.
    *
    * @default 10
    */
   fontSize?: number;
   /**
-   * CSS color for the label text.
+   * CSS color for the text, ticks, labels and titles alike.
    *
    * @default "#333333"
    */
@@ -393,9 +443,12 @@ export interface Spec {
   mark?: Mark;
 
   /**
-   * Label each layout container with the group it holds — the `groupby` value
-   * or the `bin` range. Pass `true` to take the defaults, or an object to
-   * choose the edge, the levels, and the type styling.
+   * Name the groups of each layout level that has any, reading them off the
+   * containers that level produced — as an axis where the level's shape allows
+   * one, and as labels on the containers where it does not. A level split on
+   * the field `legend` explains is left to the legend. Pass `true` to take the
+   * defaults, or an object to choose the levels, the side, and the type
+   * styling.
    *
    * Drawn by the vega backend only; the old backend ignores it.
    *
@@ -430,8 +483,8 @@ export interface Spec {
   width?: number;
   /**
    * Inset between the edge of the canvas and the first layout's containers.
-   * This is the chart's outer gutter — where axis labels would go if the
-   * grammar had axes.
+   * This is the chart's outer gutter. The axes `labels` draws sit outside it,
+   * in space added around the canvas rather than taken out of it.
    *
    * @default {"top": 0, "left": 0, "bottom": 0, "right": 0}
    */
@@ -682,9 +735,9 @@ export interface Layout {
   };
 
   /**
-   * An identifier for this level. Used by `spec.labels.layouts` to pick levels
-   * to label, and by the d3 backend as the css class on the level's `<g>`
-   * elements. Otherwise for your own readability.
+   * An identifier for this level. Used by `spec.labels.layouts` to pick the
+   * levels that get an axis, and by the d3 backend as the css class on the
+   * level's `<g>` elements. Otherwise for your own readability.
    */
   name?: string;
 
@@ -866,7 +919,7 @@ export interface Container {
   /**
    * The group this container holds: the `groupby` value, the `low-high` range
    * of a `bin`, the row index under a `flatten`, or `root` for the canvas.
-   * This is the text `spec.labels` prints.
+   * This is what the axes `spec.labels` draws read their ticks off.
    */
   label: "root" | string | number;
   /** The box assigned to this container. */

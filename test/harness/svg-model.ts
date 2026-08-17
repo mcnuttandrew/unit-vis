@@ -271,9 +271,13 @@ const BOX_MARK_NAMES = new Set(['containerMarks']);
  * Decorations the vega backend draws when a spec asks for them. They are
  * neither units nor boxes and the old backend has no counterpart, so they are
  * skipped rather than reported as something the model failed to classify.
- * (Legends need no entry: vega gives them `role-legend`, not `role-mark`.)
+ *
+ * Only the container labels need naming here: `spec.labels` draws those as
+ * text marks, one mark per level (`labelMarks1`, `labelMarks2`, ...), while
+ * the axes it prefers and the legend come back as `role-axis` / `role-legend`
+ * groups rather than `role-mark` ones.
  */
-const DECORATION_MARK_NAMES = new Set(['labelMarks']);
+const DECORATION_MARK_PREFIX = 'labelMarks';
 
 /**
  * Vega backend: marks live in `<g class="mark-<type> role-mark <name>">`, where
@@ -291,7 +295,7 @@ export function modelFromVegaSvg(svgText: string): SvgModel {
   markGroups.forEach(group => {
     const classes = group.getAttribute('class') || '';
     const tokens = classes.split(/\s+/);
-    if (tokens.some(t => DECORATION_MARK_NAMES.has(t))) {
+    if (tokens.some(t => t.startsWith(DECORATION_MARK_PREFIX))) {
       return;
     }
     const role: Role | null = tokens.some(t => UNIT_MARK_NAMES.has(t))

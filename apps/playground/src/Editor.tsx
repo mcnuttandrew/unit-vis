@@ -51,8 +51,18 @@ const editorTheme = EditorView.theme({
   '.cm-lineNumbers .cm-gutterElement': {padding: '0 8px 0 12px'},
   '.cm-activeLine': {backgroundColor: '#faf9f4'},
   '.cm-activeLineGutter': {backgroundColor: '#faf9f4', color: 'var(--ink-3)'},
-  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
-    backgroundColor: 'var(--accent-wash)',
+  // CodeMirror paints the selection as its own layer behind the text, and its
+  // base theme targets that layer through the full `.cm-focused > .cm-scroller
+  // > .cm-selectionLayer` path. Anything shorter loses on specificity and is
+  // silently ignored, so these mirror that path (plus `.cm-editor`, to win the
+  // focused rule outright rather than on a source-order tie).
+  '&.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+    background: 'var(--select)',
+  },
+  // A blurred editor keeps its selection -- clicking a toolbar button should
+  // not make you lose your place -- so it stays marked, just more quietly.
+  '.cm-selectionLayer .cm-selectionBackground': {
+    background: 'var(--select-quiet)',
   },
   '&.cm-focused': {outline: 'none'},
   '&.cm-focused .cm-cursor': {borderLeftColor: 'var(--accent)'},

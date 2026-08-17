@@ -1,43 +1,56 @@
 {
   "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
-  "title"  : "Gapminder observations by year",
-  "data"   : {"url": "data/countries.json"},
-  "width"  : 720,
-  "height" : 360,
-  "padding": {"top": 10, "left": 10, "bottom": 10, "right": 10},
+  "title": "Gapminder observations by year",
+  "data": { "url": "data/countries.json" },
+  "width": 720,
+  "height": 360,
+  "padding": { "top": 10, "left": 10, "bottom": 10, "right": 10 },
   "layouts": [
     {
-      "name"        : "year",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "groupby", "key": "year", "isShared": false},
+      "name": "year",
+      "type": "gridxy",
+      "subgroup": { "type": "groupby", "key": "year", "isShared": false },
       "aspect_ratio": "fillX",
-      "size"        : {"type": "count", "isShared": true},
-      "direction"   : "LRBT",
-      "align"       : "LB",
-      "margin"      : {"top": 3, "left": 3, "bottom": 3, "right": 3},
-      "padding"     : {"top": 3, "left": 3, "bottom": 3, "right": 3},
-      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.3},
-      "sort"        : {"key": "year", "type": "numerical", "direction": "ascending"}
+      "size": { "type": "count", "isShared": true },
+      "direction": "LRBT",
+      "align": "LB",
+      "margin": { "top": 3, "left": 3, "bottom": 3, "right": 3 },
+      "padding": { "top": 3, "left": 3, "bottom": 3, "right": 3 },
+      "box": {
+        "fill": "white",
+        "stroke": "black",
+        "stroke-width": 0.5,
+        "opacity": 0.3
+      },
+      "sort": { "key": "year", "type": "numerical", "direction": "ascending" }
     },
     {
-      "name"        : "countries",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "flatten"},
+      "name": "countries",
+      "type": "gridxy",
+      "subgroup": { "type": "flatten" },
       "aspect_ratio": "maxfill",
-      "size"        : {"type": "uniform", "isShared": true},
-      "direction"   : "LRBT",
-      "align"       : "LB",
-      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
-      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
-      "sort"        : {"key": "life_expect", "type": "numerical", "direction": "ascending"}
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "LRBT",
+      "align": "LB",
+      "margin": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "padding": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "sort": {
+        "key": "life_expect",
+        "type": "numerical",
+        "direction": "ascending"
+      }
     }
   ],
-  "mark"   : {
-    "shape"             : "rect",
-    "color"             : {"key": "year", "type": "categorical", "scheme": "schemeCategory10"},
-    "size"              : {"type": "max", "isShared": false},
+  "mark": {
+    "shape": "rect",
+    "color": {
+      "key": "year",
+      "type": "categorical",
+      "scheme": "schemeCategory10"
+    },
+    "size": { "type": "max", "isShared": false },
     "isColorScaleShared": true
   },
-  "labels" : false,
-  "legend" : true
+  "labels": true,
+  "legend": true
 }

@@ -1,7 +1,7 @@
 /**
  * unit-vis with the vega backend: the spec is compiled into a vega dataflow
- * that lays the chart out and draws it. Only this backend draws `spec.labels`
- * and `spec.legend`.
+ * that lays the chart out and draws it. Only this backend draws the axes
+ * `spec.labels` asks for, or `spec.legend`.
  *
  * Nothing but the rows crosses into vega, so the compiled spec is the whole
  * chart -- `buildVegaSpec` hands one back to serialize, embed, or drive with

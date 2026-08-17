@@ -1,11 +1,14 @@
 {
   "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
-  "data"   : {"url": "data/titanic3.csv"},
+  "data": { "url": "data/titanic3.csv" },
   "layouts": [
-    {"subgroup": {"type": "groupby", "key": "pclass"}, "aspect_ratio": "fillX"  },
-    {"subgroup": {"type": "flatten"                 }, "aspect_ratio": "maxfill"}
+    {
+      "subgroup": { "type": "groupby", "key": "pclass" },
+      "aspect_ratio": "fillX"
+    },
+    { "subgroup": { "type": "flatten" }, "aspect_ratio": "maxfill" }
   ],
-  "mark"   : {"color": {"key": "survived_text", "type": "categorical"}},
-  "labels" : false,
-  "legend" : true
+  "mark": { "color": { "key": "survived_text", "type": "categorical" } },
+  "labels": true,
+  "legend": true
 }

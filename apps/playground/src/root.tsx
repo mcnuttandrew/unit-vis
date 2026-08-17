@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Chart from "./chart";
+import { BACKENDS, loadEnabled, saveEnabled } from "./backends";
 import DefaultChooser from "./default-chooser";
 import { defaultSpecName, options } from "./specs";
 import Editor from "./Editor";
@@ -18,6 +19,12 @@ export default function Root() {
   // prev/next, the back button, a pasted link -- goes through the same place.
   const [specName, setSpecName] = useHashRoute();
   const [showAbout, setAbout] = useState(false);
+
+  // Which backends draw. Turning one off is for reading the other's chart on
+  // its own, which is usually a mood that outlasts a page load -- so the
+  // toggles come back the way they were left.
+  const [enabledBackends, setEnabledBackends] = useState(loadEnabled);
+  useEffect(() => saveEnabled(enabledBackends), [enabledBackends]);
 
   const selectedSpec =
     options.find(({ name }) => name === specName) ?? defaultSpec;
@@ -155,6 +162,25 @@ export default function Root() {
             >
               About
             </div>
+            <span className="chart-panel-controls__spacer" />
+            <div className="backend-toggles">
+              <span className="label">backends</span>
+              {BACKENDS.map(({ key, name }) => (
+                <label key={key} className="backend-toggle">
+                  <input
+                    type="checkbox"
+                    checked={enabledBackends[key]}
+                    onChange={(e) =>
+                      setEnabledBackends((prev) => ({
+                        ...prev,
+                        [key]: e.target.checked,
+                      }))
+                    }
+                  />
+                  {name}
+                </label>
+              ))}
+            </div>
           </div>
           <div className="panel-scroll">
             {showAbout ? (
@@ -200,7 +226,10 @@ export default function Root() {
                 </p>
               </div>
             ) : (
-              <Chart spec={parsedCode ?? undefined} />
+              <Chart
+                spec={parsedCode ?? undefined}
+                enabled={enabledBackends}
+              />
             )}
           </div>
         </div>

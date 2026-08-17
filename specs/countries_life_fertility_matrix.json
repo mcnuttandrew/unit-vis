@@ -1,56 +1,84 @@
 {
   "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
-  "title"  : "Fertility vs life expectancy",
-  "data"   : {"url": "data/countries.json"},
-  "width"  : 640,
-  "height" : 560,
-  "padding": {"top": 5, "left": 5, "bottom": 5, "right": 5},
+  "title": "Fertility vs life expectancy",
+  "data": { "url": "data/countries.json" },
+  "width": 640,
+  "height": 560,
+  "padding": { "top": 5, "left": 5, "bottom": 5, "right": 5 },
   "layouts": [
     {
-      "name"        : "fertility_bin",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "bin", "key": "fertility", "numBin": 9, "isShared": false},
+      "name": "fertility_bin",
+      "type": "gridxy",
+      "subgroup": {
+        "type": "bin",
+        "key": "fertility",
+        "numBin": 9,
+        "isShared": false
+      },
       "aspect_ratio": "fillX",
-      "size"        : {"type": "uniform", "isShared": true},
-      "direction"   : "LRBT",
-      "align"       : "LB",
-      "margin"      : {"top": 1, "left": 1, "bottom": 1, "right": 1},
-      "padding"     : {"top": 1, "left": 1, "bottom": 1, "right": 1},
-      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.2},
-      "sort"        : {"key": "fertility", "type": "numerical", "direction": "ascending"}
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "LRBT",
+      "align": "LB",
+      "margin": { "top": 1, "left": 1, "bottom": 1, "right": 1 },
+      "padding": { "top": 1, "left": 1, "bottom": 1, "right": 1 },
+      "box": {
+        "fill": "white",
+        "stroke": "black",
+        "stroke-width": 0.5,
+        "opacity": 0.2
+      },
+      "sort": {
+        "key": "fertility",
+        "type": "numerical",
+        "direction": "ascending"
+      }
     },
     {
-      "name"        : "life_bin",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "bin", "key": "life_expect", "numBin": 9, "isShared": true},
+      "name": "life_bin",
+      "type": "gridxy",
+      "subgroup": {
+        "type": "bin",
+        "key": "life_expect",
+        "numBin": 9,
+        "isShared": true
+      },
       "aspect_ratio": "fillY",
-      "size"        : {"type": "uniform", "isShared": true},
-      "direction"   : "BT",
-      "align"       : "bottom",
-      "margin"      : {"top": 1, "left": 1, "bottom": 1, "right": 1},
-      "padding"     : {"top": 1, "left": 1, "bottom": 1, "right": 1},
-      "box"         : {"fill": "white", "stroke": "gray", "stroke-width": 0.5, "opacity": 0.2},
-      "sort"        : {"key": "life_expect", "type": "numerical", "direction": "ascending"}
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "BT",
+      "align": "bottom",
+      "margin": { "top": 1, "left": 1, "bottom": 1, "right": 1 },
+      "padding": { "top": 1, "left": 1, "bottom": 1, "right": 1 },
+      "box": {
+        "fill": "white",
+        "stroke": "gray",
+        "stroke-width": 0.5,
+        "opacity": 0.2
+      },
+      "sort": {
+        "key": "life_expect",
+        "type": "numerical",
+        "direction": "ascending"
+      }
     },
     {
-      "name"        : "observations",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "flatten"},
+      "name": "observations",
+      "type": "gridxy",
+      "subgroup": { "type": "flatten" },
       "aspect_ratio": "maxfill",
-      "size"        : {"type": "uniform", "isShared": false},
-      "direction"   : "LRBT",
-      "align"       : "LB",
-      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
-      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
-      "sort"        : {"key": "year", "type": "numerical", "direction": "ascending"}
+      "size": { "type": "uniform", "isShared": false },
+      "direction": "LRBT",
+      "align": "LB",
+      "margin": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "padding": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "sort": { "key": "year", "type": "numerical", "direction": "ascending" }
     }
   ],
-  "mark"   : {
-    "shape"             : "circle",
-    "color"             : {"key": "year", "type": "categorical", "scheme": "schemePaired"},
-    "size"              : {"type": "max", "isShared": false},
+  "mark": {
+    "shape": "circle",
+    "color": { "key": "year", "type": "categorical", "scheme": "schemePaired" },
+    "size": { "type": "max", "isShared": false },
     "isColorScaleShared": true
   },
-  "labels" : false,
-  "legend" : true
+  "labels": true,
+  "legend": true
 }

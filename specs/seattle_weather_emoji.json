@@ -1,33 +1,37 @@
 {
   "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
-  "title"  : "Four years of Seattle weather, a glyph a day",
-  "data"   : {"url": "data/seattle-weather.csv"},
-  "width"  : 720,
-  "height" : 420,
-  "padding": {"top": 10, "left": 10, "bottom": 10, "right": 10},
+  "title": "Four years of Seattle weather, a glyph a day",
+  "data": { "url": "data/seattle-weather.csv" },
+  "width": 720,
+  "height": 420,
+  "padding": { "top": 10, "left": 10, "bottom": 10, "right": 10 },
   "layouts": [
     {
-      "name"        : "days",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "flatten"},
+      "name": "days",
+      "type": "gridxy",
+      "subgroup": { "type": "flatten" },
       "aspect_ratio": "maxfill",
-      "size"        : {"type": "uniform", "isShared": true},
-      "direction"   : "LRTB",
-      "align"       : "LB",
-      "sort"        : {"key": "weather", "type": "categorical", "direction": "ascending"}
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "LRTB",
+      "align": "LB",
+      "sort": {
+        "key": "weather",
+        "type": "categorical",
+        "direction": "ascending"
+      }
     }
   ],
-  "mark"   : {
+  "mark": {
     "shape": "emoji",
     "emoji": {
-      "key"    : "weather",
-      "domain" : ["sun", "rain", "drizzle", "fog", "snow"],
-      "range"  : ["☀️", "🌧️", "💧", "🌫️", "❄️"],
+      "key": "weather",
+      "domain": ["sun", "rain", "drizzle", "fog", "snow"],
+      "range": ["☀️", "🌧️", "💧", "🌫️", "❄️"],
       "default": "❓"
     },
-    "color": {"key": "weather", "type": "categorical"},
-    "size" : {"type": "max", "isShared": true}
+    "color": { "key": "weather", "type": "categorical" },
+    "size": { "type": "max", "isShared": true }
   },
-  "labels" : false,
-  "legend" : false
+  "labels": true,
+  "legend": false
 }

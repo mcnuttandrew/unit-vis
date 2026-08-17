@@ -1,7 +1,7 @@
 {
   "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
-  "data"   : {"url": "data/titanic3.csv"},
-  "layouts": [{"subgroup": {"type": "flatten"}}],
-  "labels" : false,
-  "legend" : true
+  "data": { "url": "data/titanic3.csv" },
+  "layouts": [{ "subgroup": { "type": "flatten" } }],
+  "labels": true,
+  "legend": true
 }

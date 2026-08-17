@@ -1,55 +1,78 @@
 {
   "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
-  "title"  : "Penguin body mass",
-  "data"   : {"url": "data/penguins.csv"},
-  "width"  : 720,
-  "height" : 360,
-  "padding": {"top": 10, "left": 10, "bottom": 10, "right": 10},
+  "title": "Penguin body mass",
+  "data": { "url": "data/penguins.csv" },
+  "width": 720,
+  "height": 360,
+  "padding": { "top": 10, "left": 10, "bottom": 10, "right": 10 },
   "layouts": [
     {
-      "name"        : "mass_bin",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "bin", "key": "body_mass_g", "numBin": 12, "isShared": false},
+      "name": "mass_bin",
+      "type": "gridxy",
+      "subgroup": {
+        "type": "bin",
+        "key": "body_mass_g",
+        "numBin": 12,
+        "isShared": false
+      },
       "aspect_ratio": "fillX",
-      "size"        : {"type": "uniform", "isShared": true},
-      "direction"   : "LRBT",
-      "align"       : "LB",
-      "margin"      : {"top": 2, "left": 2, "bottom": 2, "right": 2},
-      "padding"     : {"top": 2, "left": 2, "bottom": 2, "right": 2},
-      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.3},
-      "sort"        : {"key": "body_mass_g", "type": "numerical", "direction": "ascending"}
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "LRBT",
+      "align": "LB",
+      "margin": { "top": 2, "left": 2, "bottom": 2, "right": 2 },
+      "padding": { "top": 2, "left": 2, "bottom": 2, "right": 2 },
+      "box": {
+        "fill": "white",
+        "stroke": "black",
+        "stroke-width": 0.5,
+        "opacity": 0.3
+      },
+      "sort": {
+        "key": "body_mass_g",
+        "type": "numerical",
+        "direction": "ascending"
+      }
     },
     {
-      "name"        : "stack",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "passthrough", "isShared": true},
+      "name": "stack",
+      "type": "gridxy",
+      "subgroup": { "type": "passthrough", "isShared": true },
       "aspect_ratio": "fillY",
-      "size"        : {"type": "count", "isShared": true},
-      "direction"   : "BT",
-      "align"       : "bottom",
-      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
-      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
-      "box"         : {"fill": "none", "stroke": "gray", "stroke-width": 0, "opacity": 0.2}
+      "size": { "type": "count", "isShared": true },
+      "direction": "BT",
+      "align": "bottom",
+      "margin": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "padding": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "box": {
+        "fill": "none",
+        "stroke": "gray",
+        "stroke-width": 0,
+        "opacity": 0.2
+      }
     },
     {
-      "name"        : "penguins",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "flatten"},
+      "name": "penguins",
+      "type": "gridxy",
+      "subgroup": { "type": "flatten" },
       "aspect_ratio": "maxfill",
-      "size"        : {"type": "uniform", "isShared": false},
-      "direction"   : "BTLR",
-      "align"       : "LB",
-      "margin"      : {"top": 0, "left": 0, "bottom": 0, "right": 0},
-      "padding"     : {"top": 0, "left": 0, "bottom": 0, "right": 0},
-      "sort"        : {"key": "species", "type": "categorical", "direction": "ascending"}
+      "size": { "type": "uniform", "isShared": false },
+      "direction": "BTLR",
+      "align": "LB",
+      "margin": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "padding": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "sort": {
+        "key": "species",
+        "type": "categorical",
+        "direction": "ascending"
+      }
     }
   ],
-  "mark"   : {
-    "shape"             : "circle",
-    "color"             : {"key": "species", "type": "categorical"},
-    "size"              : {"type": "max", "isShared": false},
+  "mark": {
+    "shape": "circle",
+    "color": { "key": "species", "type": "categorical" },
+    "size": { "type": "max", "isShared": false },
     "isColorScaleShared": true
   },
-  "labels" : false,
-  "legend" : true
+  "labels": true,
+  "legend": true
 }

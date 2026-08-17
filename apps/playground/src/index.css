@@ -8,6 +8,13 @@
   --accent-dark: #5e14b0;
   --accent-wash: #f4eeff;
 
+  /* The accent at strengths that still read as a highlight over --panel.
+     --accent-wash is deliberately near-white and is too faint to mark
+     selected text with; these are the two that are. --select-quiet is for a
+     selection whose editor has lost focus: quieter, but still there. */
+  --select: #e2cdf5;
+  --select-quiet: #ecdff7;
+
   --ink: #16150f;
   --ink-2: #45443c;
   --ink-3: #767468;
@@ -41,6 +48,12 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* The browser default is a blue that belongs to no palette here. */
+::selection {
+  background: var(--select);
+  color: var(--ink);
 }
 
 #root,
@@ -451,6 +464,42 @@ body.is-resizing {
   border-bottom-color: var(--accent);
   color: var(--ink);
   font-weight: 550;
+}
+
+.chart-panel-controls__spacer {
+  flex: 1;
+}
+
+/* The toggles sit at the far end of the tab bar: same row, but they pick what
+   is drawn rather than which view is up, so nothing about them reads as a tab. */
+.backend-toggles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.backend-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.backend-toggle:hover {
+  color: var(--ink);
+}
+
+.backend-toggle input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .panel-scroll {

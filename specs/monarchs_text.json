@@ -1,30 +1,39 @@
 {
   "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
-  "title"  : "English monarchs, each unit labelled with its own name",
-  "data"   : {"url": "data/monarchs.json"},
-  "width"  : 720,
-  "height" : 420,
-  "padding": {"top": 10, "left": 10, "bottom": 10, "right": 10},
+  "title": "English monarchs, each unit labelled with its own name",
+  "data": { "url": "data/monarchs.json" },
+  "width": 720,
+  "height": 420,
+  "padding": { "top": 10, "left": 10, "bottom": 10, "right": 10 },
   "layouts": [
     {
-      "name"        : "house",
-      "type"        : "gridxy",
-      "subgroup"    : {"type": "flatten"},
+      "name": "house",
+      "type": "gridxy",
+      "subgroup": { "type": "flatten" },
       "aspect_ratio": "maxfill",
-      "size"        : {"type": "uniform", "isShared": true},
-      "direction"   : "LRTB",
-      "align"       : "LB",
-      "margin"      : {"top": 4, "left": 4, "bottom": 4, "right": 4},
-      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.3},
-      "sort"        : {"key": "start", "type": "numerical", "direction": "ascending"}
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "LRTB",
+      "align": "LB",
+      "margin": { "top": 4, "left": 4, "bottom": 4, "right": 4 },
+      "box": {
+        "fill": "white",
+        "stroke": "black",
+        "stroke-width": 0.5,
+        "opacity": 0.3
+      },
+      "sort": { "key": "start", "type": "numerical", "direction": "ascending" }
     }
   ],
-  "mark"   : {
+  "mark": {
     "shape": "text",
-    "text" : {"key": "name"},
-    "color": {"key": "name", "type": "categorical", "scheme": "schemeTableau10"},
-    "size" : {"type": "max", "isShared": true}
+    "text": { "key": "name" },
+    "color": {
+      "key": "name",
+      "type": "categorical",
+      "scheme": "schemeTableau10"
+    },
+    "size": { "type": "max", "isShared": true }
   },
-  "labels" : false,
-  "legend" : false
+  "labels": true,
+  "legend": false
 }
