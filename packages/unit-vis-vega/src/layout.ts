@@ -24,6 +24,7 @@ import type {Data as VegaData, Transforms} from 'vega';
 import type {DataRow, Layout, Spec} from '@unit-vis/core';
 
 import {TREEMAP_TRANSFORM, registerTreemapTransform} from './treemap-transform.js';
+import {SHELF_TRANSFORM, registerShelfTransform} from './shelf-transform.js';
 
 /**
  * Joins the per-level keys into a container's composite key. Any character
@@ -67,6 +68,53 @@ function valueExpr(layout: Layout): string {
     // `uniform`, which `applyDefault` also writes onto any level that omits it
     default:
       return '1';
+  }
+}
+
+/** Whether this level's boxes carry a value at all, rather than being a grid of equals. */
+export function isWeighted(layout: Layout): boolean {
+  const type = layout.size && layout.size.type;
+  return Boolean(type) && type !== 'uniform';
+}
+
+/** A weighted `maxfill` level: a squarified treemap. */
+export function isTreemap(layout: Layout): boolean {
+  return layout.aspect_ratio === 'maxfill' && isWeighted(layout);
+}
+
+/** A weighted `square`/`parent`/`custom` level: a shelf packing. */
+export function isWeightedPack(layout: Layout): boolean {
+  const ratio = layout.aspect_ratio;
+  return isWeighted(layout) && (ratio === 'square' || ratio === 'parent' || ratio === 'custom');
+}
+
+/**
+ * `customAspectRatio`: the ratio a `custom` level draws its boxes at. The
+ * engine raises on a level that asks for `custom` without supplying one, so the
+ * compiler does too rather than emitting a spec full of NaN.
+ */
+function customRatio(layout: Layout): number {
+  const ratio = layout.custom_aspect_ratio;
+  if (typeof ratio !== 'number' || !Number.isFinite(ratio) || ratio <= 0) {
+    throw new Error(
+      'unit-vis: aspect_ratio "custom" needs a positive `custom_aspect_ratio` ' +
+        `on the same layout, got ${JSON.stringify(ratio)}`,
+    );
+  }
+  return ratio;
+}
+
+/** `unitAspectRatio`: `width / height` of one box, as an expression. */
+function ratioExpr(layout: Layout): string {
+  switch (layout.aspect_ratio) {
+    case 'square':
+      return '1';
+    case 'parent':
+      return 'datum.pw / datum.ph';
+    case 'custom':
+      return `${customRatio(layout)}`;
+    default:
+      return 'NaN';
   }
 }
 
@@ -696,40 +744,27 @@ function packGeometry(
   stamp: Transforms[],
   stampPadding: Transforms[],
 ): VegaData[] {
-  const uniform = !layout.size || !layout.size.type || layout.size.type === 'uniform';
+  const uniform = !isWeighted(layout);
   const shared = Boolean(layout.size && layout.size.isShared);
   const maxfill = layout.aspect_ratio === 'maxfill';
 
-  if (maxfill && !uniform) {
+  if (isTreemap(layout)) {
     // A weighted `maxfill` is a squarified treemap, which is a sequential
     // algorithm rather than an aggregate. Sharing has no arm for it, so the
     // treemap is the whole of this level's geometry.
     return [treemapGeometry(depth, layout, source, prevCk, stamp, stampPadding)];
   }
 
-  const data: VegaData[] = [];
-
-  // A shared, weighted `square` level sizes by area instead of by grid, and
-  // overwrites every box the grid would have produced -- so there is no grid to
-  // compute at all.
-  if (shared && !uniform && layout.aspect_ratio === 'square') {
-    const placement = sharedSquareUnit(depth, layout, source, prevCk, data);
-    return [
-      ...data,
-      {
-        name: levelName(depth),
-        source,
-        transform: [
-          ...placement,
-          ...stamp,
-          // `calcPackGridxyVisualSpaceWithUnitLength` never writes a padding, so
-          // the containers keep whatever they were built with. Every other arm
-          // stamps the level's own.
-          ...initialPadding(layout),
-        ],
-      },
-    ];
+  if (isWeightedPack(layout)) {
+    // The other weighted packing: boxes of unequal size, shelved into the
+    // parent rather than gridded. Sequential in the same way the treemap is,
+    // and its scale is a search over that placement, so both live in the
+    // transform -- sharing included, since a shared level's scale is the
+    // smallest one any parent in the group needed.
+    return [shelfGeometry(depth, layout, source, prevCk, stamp, stampPadding)];
   }
+
+  const data: VegaData[] = [];
 
   // The grid depends only on the parent's box and how many children it holds,
   // so it is decided once per parent -- not once per container.
@@ -812,17 +847,10 @@ function maxfillSearch(layout: Layout, prevCk: string): Transforms[] {
  * edge that leave room for every child at the level's aspect ratio.
  *
  * The engine finds it by incrementing until the grid is big enough; here every
- * candidate is generated and the smallest passing one is taken. `custom` has no
- * field to supply a ratio, so its comparisons are all against NaN and both
- * agree on the first candidate and an unsized box.
+ * candidate is generated and the smallest passing one is taken.
  */
 function repetitionSearch(layout: Layout, prevCk: string): Transforms[] {
-  const ratio =
-    layout.aspect_ratio === 'square'
-      ? '1'
-      : layout.aspect_ratio === 'parent'
-        ? 'datum.pw / datum.ph'
-        : 'NaN';
+  const ratio = ratioExpr(layout);
   const vertical = VERTICAL_DIRECTIONS.has(layout.direction!);
   // A vertical direction fills along x and wraps down y; a horizontal one is the
   // transpose, ratio included.
@@ -854,9 +882,10 @@ function repetitionSearch(layout: Layout, prevCk: string): Transforms[] {
       as: '__remRep',
       expr: `floor((${remaining}) * datum.__k * datum.__ratio / (${filling}))`,
     },
-    // The engine's loop stops at the first candidate that fits, and a NaN ratio
-    // fails the comparison rather than passing it, so `custom` stops at k = 1
-    // with unsized boxes. Comparing the other way round keeps that.
+    // The engine's loop stops at the first candidate that fits. Comparing this
+    // way round rather than negating it keeps a degenerate box -- a parent with
+    // no extent, whose comparisons are all against NaN -- stopping where the
+    // engine's loop stops, at k = 1.
     {type: 'filter', expr: 'datum.n > datum.__remRep * datum.__k ? false : true'},
     {
       type: 'aggregate',
@@ -969,127 +998,83 @@ function sharedGrid(
  * `applyEdgeInfo`: run the boxes along the filling edge and wrap onto the
  * remaining one.
  *
- * The right-to-left orders are accepted by the grammar but unimplemented in the
- * engine, which logs and leaves the boxes unpositioned; NaN offsets carry that
- * through rather than quietly inventing a placement.
+ * A direction reversed on an axis is measured from the far edge of the parent
+ * and stepped backwards, so all eight orders are the same two expressions with
+ * their origins and signs flipped.
  */
 function edgePlacement(layout: Layout): Transforms[] {
   const direction = layout.direction!;
+  const rightToLeft = direction.startsWith('RL') || direction.endsWith('RL');
+  const bottomToTop = direction.startsWith('BT') || direction.endsWith('BT');
+
   if (VERTICAL_DIRECTIONS.has(direction)) {
-    if (direction === 'RLBT' || direction === 'RLTB') {
-      return unpositioned();
-    }
-    const originY = direction === 'LRBT' ? 'datum.ph - datum.remSide' : '0';
-    const stepY = direction === 'LRBT' ? '-datum.remSide' : 'datum.remSide';
+    const originX = rightToLeft ? 'datum.pw - datum.fillSide' : '0';
+    const stepX = rightToLeft ? '-datum.fillSide' : 'datum.fillSide';
+    const originY = bottomToTop ? 'datum.ph - datum.remSide' : '0';
+    const stepY = bottomToTop ? '-datum.remSide' : 'datum.remSide';
     return [
       {type: 'formula', as: 'width', expr: 'datum.fillSide'},
       {type: 'formula', as: 'height', expr: 'datum.remSide'},
-      {type: 'formula', as: 'relX', expr: 'datum.fillSide * (datum.idx % datum.fillRep)'},
+      {type: 'formula', as: 'relX', expr: `${originX} + (${stepX}) * (datum.idx % datum.fillRep)`},
       {type: 'formula', as: 'relY', expr: `${originY} + (${stepY}) * floor(datum.idx / datum.fillRep)`},
     ];
   }
-  if (direction === 'TBRL' || direction === 'BTRL') {
-    return unpositioned();
-  }
-  const originY = direction === 'BTLR' ? 'datum.ph - datum.remSide' : '0';
-  const stepY = direction === 'BTLR' ? '-datum.fillSide' : 'datum.fillSide';
+  const originX = rightToLeft ? 'datum.pw - datum.remSide' : '0';
+  const stepX = rightToLeft ? '-datum.remSide' : 'datum.remSide';
+  // `BTLR` has always measured its origin from the *remaining* edge rather than
+  // the box height it is offsetting, and `BTRL` inherits that; reproduced here
+  // because the engine still does it. See `applyEdgeInfoHorizontalDirection`.
+  const originY = bottomToTop ? 'datum.ph - datum.remSide' : '0';
+  const stepY = bottomToTop ? '-datum.fillSide' : 'datum.fillSide';
   return [
     {type: 'formula', as: 'width', expr: 'datum.remSide'},
     {type: 'formula', as: 'height', expr: 'datum.fillSide'},
-    {type: 'formula', as: 'relX', expr: 'datum.remSide * floor(datum.idx / datum.fillRep)'},
+    {type: 'formula', as: 'relX', expr: `${originX} + (${stepX}) * floor(datum.idx / datum.fillRep)`},
     {type: 'formula', as: 'relY', expr: `${originY} + (${stepY}) * (datum.idx % datum.fillRep)`},
   ];
 }
 
-function unpositioned(): Transforms[] {
-  return [
-    {type: 'formula', as: 'width', expr: 'NaN'},
-    {type: 'formula', as: 'height', expr: 'NaN'},
-    {type: 'formula', as: 'relX', expr: 'NaN'},
-    {type: 'formula', as: 'relY', expr: 'NaN'},
-  ];
-}
-
 /**
- * `calcPackGridxyVisualSpaceWithUnitLength`, the one packing arm that sizes by
- * area rather than by grid: a shared, weighted `square` level gives each
- * container a square of `unit * value` area and centers it in its parent.
+ * `calcPackGridxyVisualSpace` and `calcPackGridxyVisualSpaceWithUnitLength` for
+ * a weighted level: every container gets a box of `unit * value` area at the
+ * level's aspect ratio, and the boxes are shelved into the parent. See
+ * `shelf-transform.ts`.
  */
-function sharedSquareUnit(
+function shelfGeometry(
   depth: number,
   layout: Layout,
   source: string,
   prevCk: string,
-  data: VegaData[],
-): Transforms[] {
+  stamp: Transforms[],
+  stampPadding: Transforms[],
+): VegaData {
+  registerShelfTransform();
   const margin = layout.margin!;
-  const group = sharingScope(depth, true);
-
-  // `getAvailableSpace` for a square level is the largest square that fits.
-  data.push({
-    name: `__unitLen${depth}`,
+  const shared = Boolean(layout.size && layout.size.isShared);
+  return {
+    name: levelName(depth),
     source,
     transform: [
-      {type: 'formula', as: '__value', expr: valueExpr(layout)},
+      {type: 'formula', as: '__weight', expr: valueExpr(layout)},
+      {type: 'formula', as: '__ratio', expr: ratioExpr(layout)},
       {
-        type: 'aggregate',
-        groupby: [prevCk, group],
-        fields: ['__value', 'pw', 'ph', 'ppadL', 'ppadR', 'ppadT', 'ppadB'],
-        ops: ['sum', 'min', 'min', 'min', 'min', 'min', 'min'],
-        as: ['__valueSum', 'pw', 'ph', 'ppadL', 'ppadR', 'ppadT', 'ppadB'],
-      },
-      {type: 'formula', as: '__inW', expr: 'datum.pw - datum.ppadL - datum.ppadR'},
-      {type: 'formula', as: '__inH', expr: 'datum.ph - datum.ppadT - datum.ppadB'},
-      {type: 'formula', as: '__side', expr: 'min(datum.__inW, datum.__inH)'},
-      {type: 'formula', as: '__unit', expr: 'datum.__side * datum.__side / datum.__valueSum'},
-      {type: 'joinaggregate', groupby: [group], fields: ['__unit'], ops: ['min'], as: ['__shared']},
+        type: SHELF_TRANSFORM,
+        groupby: prevCk,
+        // The scale is minimized across the sharing group inside the transform,
+        // which for an unshared level is the parent alone.
+        share: sharingScope(depth, shared),
+        weight: '__weight',
+        box: ['pw', 'ph'],
+        pad: ['ppadL', 'ppadR', 'ppadT', 'ppadB'],
+        ratio: '__ratio',
+        margin: [margin.top, margin.left, margin.bottom, margin.right],
+        direction: layout.direction,
+        as: ['relX', 'relY', 'width', 'height'],
+      } as unknown as Transforms,
+      ...stamp,
+      ...stampPadding,
     ],
-  });
-
-  return [
-    {
-      type: 'lookup',
-      from: `__unitLen${depth}`,
-      key: prevCk,
-      fields: [prevCk],
-      values: ['__shared'],
-      as: ['__unit'],
-    },
-    {type: 'formula', as: '__value', expr: valueExpr(layout)},
-    {type: 'formula', as: 'width', expr: 'sqrt(datum.__unit * datum.__value)'},
-    {type: 'formula', as: 'height', expr: 'sqrt(datum.__unit * datum.__value)'},
-    {
-      type: 'formula',
-      as: 'relX',
-      expr:
-        `datum.ppadL + ${margin.left} + ` +
-        '0.5 * (datum.pw - datum.width - datum.ppadL - datum.ppadR)',
-    },
-    // The engine subtracts the parent's *right* padding on the vertical axis
-    // here. Faithfully reproduced: changing it would move existing charts.
-    {
-      type: 'formula',
-      as: 'relY',
-      expr:
-        `datum.ppadT + ${margin.top} + ` +
-        '0.5 * (datum.ph - datum.height - datum.ppadT - datum.ppadR)',
-    },
-  ];
-}
-
-/**
- * The padding a container is built with, before any layout stamps its own.
- * `emptyContainersFromKeys` leaves a stray 9px on the bottom; every other
- * constructor starts at zero.
- */
-function initialPadding(layout: Layout): Transforms[] {
-  const bottom = layout.subgroup.type === 'groupby' ? 9 : 0;
-  return [
-    {type: 'formula', as: 'padT', expr: '0'},
-    {type: 'formula', as: 'padL', expr: '0'},
-    {type: 'formula', as: 'padB', expr: `${bottom}`},
-    {type: 'formula', as: 'padR', expr: '0'},
-  ];
+  };
 }
 
 /**
@@ -1111,14 +1096,9 @@ function treemapGeometry(
     name: levelName(depth),
     source,
     transform: [
-      // A treemap level reads its weight off the first row of each child, so it
-      // expects a `flatten` above it, where each child holds exactly one row.
-      {type: 'lookup', from: ROWS_BY_ID, key: 'id', fields: ['firstId'], as: ['__first']},
-      {
-        type: 'formula',
-        as: '__weight',
-        expr: `datum.__first ? toNumber(datum.__first[${JSON.stringify(layout.size!.key)}]) : NaN`,
-      },
+      // The weight is this level's `size` read over each child, the same
+      // quantity every other weighted level divides its space by.
+      {type: 'formula', as: '__weight', expr: valueExpr(layout)},
       {
         type: TREEMAP_TRANSFORM,
         groupby: prevCk,

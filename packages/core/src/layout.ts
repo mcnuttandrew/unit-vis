@@ -6,13 +6,15 @@ import {
   isVerticalDirection,
   getCombination,
   getUnit,
+  getValue,
   getParents,
   applyEdgeInfo,
   getAvailableSpace,
   calcFillGridxyVisualSpaceWithUnitLength,
   getSharingAncestorContainer,
+  calcPackGridxyUnitLength,
   calcPackGridxyVisualSpaceWithUnitLength,
-  asRow,
+  unitAspectRatio,
 } from './utils.js';
 
 // add linked list connections across layouts
@@ -142,8 +144,43 @@ function getMinUnitAmongContainers(layout: Layout): number {
   const parentContainers = getParents(layout.sizeSharingGroup);
 
   return min(parentContainers, (d: Container): number => {
-    return getUnit(getAvailableSpace(d, layout), childrenOf(d), layout);
+    return getUnitForContainer(d, childrenOf(d), layout);
   })!;
+}
+
+/**
+ * What one unit of this level's `size` is worth inside a container: a length for
+ * a fill level, an area for a weighted packing level.
+ *
+ * They are the same quantity in different dimensions -- how much of the parent
+ * one row buys -- which is why a shared level can minimize either of them across
+ * its sharing group the same way.
+ */
+function getUnitForContainer(
+  parentContainer: Container,
+  childContainers: Container[],
+  layout: Layout,
+): number {
+  if (isWeightedPack(layout)) {
+    return calcPackGridxyUnitLength(parentContainer, childContainers, layout);
+  }
+  return getUnit(getAvailableSpace(parentContainer, layout), childContainers, layout);
+}
+
+/**
+ * Whether this level packs boxes whose area carries a value, rather than a grid
+ * of equal cells.
+ *
+ * `maxfill` is weighted too, but squarifies into a treemap instead — it fills
+ * its parent exactly and so has no unit to share.
+ */
+function isWeightedPack(layout: Layout): boolean {
+  const type = layout.size && layout.size.type;
+  if (!type || type === 'uniform') {
+    return false;
+  }
+  const ratio = layout.aspect_ratio;
+  return ratio === 'square' || ratio === 'parent' || ratio === 'custom';
 }
 
 function makeSharedSizeFill(layout: Layout): void {
@@ -319,19 +356,25 @@ function calcPackGridxyVisualSpace(
   childContainers: Container[],
   layout: Layout,
 ): void {
-  // `custom` reaches here too, but the grammar has no field to supply its
-  // ratio; NaN leaves its containers unsized, as documented.
-  let aspectRatio = NaN;
-
-  switch (layout.aspect_ratio) {
-    case 'square':
-      aspectRatio = 1;
-      break;
-    case 'parent':
-      aspectRatio = parentContainer.visualspace.width / parentContainer.visualspace.height;
-      break;
+  // A weighted level's boxes differ in size, so there is no grid to find: the
+  // boxes are shelved instead, at the largest scale this container can hold.
+  // A shared level then re-runs the pack with the group's smallest scale.
+  if (isWeightedPack(layout)) {
+    calcPackGridxyVisualSpaceWithUnitLength(
+      parentContainer,
+      childContainers,
+      layout,
+      calcPackGridxyUnitLength(parentContainer, childContainers, layout),
+    );
+    return;
   }
-  const edgeInfo = calcEdgeInfo(parentContainer, childContainers, layout, aspectRatio);
+
+  const edgeInfo = calcEdgeInfo(
+    parentContainer,
+    childContainers,
+    layout,
+    unitAspectRatio(parentContainer, layout),
+  );
   applyEdgeInfo(parentContainer, childContainers, layout, edgeInfo);
 }
 function calcPackGridxyMaxFillVisualSpaceUniform(
@@ -349,10 +392,11 @@ function calcPackGridxyMaxFillVisualSpaceFunction(
   childContainers: Container[],
   layout: Layout,
 ): void {
-  // A treemap level reads its weight off the first row of each child, so this
-  // path expects a `flatten` above it, where each child holds exactly one row.
-  const key = layout.size!.key!;
-  const weightOf = (c: Container): number => Number(asRow(c.contents[0])[key]);
+  // A treemap's weights are this level's `size` read over each child, the same
+  // quantity every other weighted level divides its space by: `sum` aggregates
+  // `size.key` across the child's rows and `count` is how many it holds. Over a
+  // `flatten` level, where a child is one row, the two agree.
+  const weightOf = (c: Container): number => getValue(c, layout);
 
   childContainers = childContainers.filter(function(d) {
     return weightOf(d) > 0;

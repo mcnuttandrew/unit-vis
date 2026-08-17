@@ -36,6 +36,7 @@
     "fracturedjsonjs": "^5.0.1",
     "globals": "^17.7.0",
     "jsdom": "^30.0.1",
+    "json-schema-library": "^9.3.5",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.65.0",
     "typescript-json-schema": "^0.68.0",

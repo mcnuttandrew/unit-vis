@@ -1,4 +1,6 @@
 import { range, sum } from "./array.js";
+import { weightedPackRects, weightedPackUnit } from "./shelf.js";
+import type { WeightedPack } from "./shelf.js";
 import type {
   Container,
   ContainerChild,
@@ -122,37 +124,29 @@ function applyEdgeInfoHorizontalDirection(
   layout: Layout,
   edgeInfo: EdgeInfo,
 ): void {
-  let xInc = 0;
-  let yInc = 0;
-  let numVerticalElement = 0;
-  let xOrig = 0;
-  let yOrig = 0;
-  switch (layout.direction) {
-    case "TBLR":
-      xOrig = 0;
-      yOrig = 0;
-      xInc = edgeInfo.remainingEdgeSideUnitLength;
-      yInc = edgeInfo.fillingEdgeSideUnitLength;
-      numVerticalElement = edgeInfo.fillingEdgeRepetitionCount;
-      break;
-    case "BTLR":
-      xOrig = 0;
-      yOrig =
-        parentContainer.visualspace.height -
-        edgeInfo.remainingEdgeSideUnitLength;
-      xInc = edgeInfo.remainingEdgeSideUnitLength;
-      yInc = -1.0 * edgeInfo.fillingEdgeSideUnitLength;
-      numVerticalElement = edgeInfo.fillingEdgeRepetitionCount;
-      break;
-    case "TBRL":
-    case "BTRL":
-      console.log("TODO");
-      break;
-  }
+  // The boxes run down (or up) a column and the columns advance across x, so
+  // the filling edge is the height and the remaining edge the width.
+  const width = edgeInfo.remainingEdgeSideUnitLength;
+  const height = edgeInfo.fillingEdgeSideUnitLength;
+  const numVerticalElement = edgeInfo.fillingEdgeRepetitionCount;
+  const rightToLeft =
+    layout.direction === "TBRL" || layout.direction === "BTRL";
+  const bottomToTop =
+    layout.direction === "BTLR" || layout.direction === "BTRL";
+
+  const xOrig = rightToLeft ? parentContainer.visualspace.width - width : 0;
+  const xInc = rightToLeft ? -1.0 * width : width;
+  // `BTLR` has always measured its origin from the *remaining* edge rather than
+  // the box height it is offsetting; kept as it is, since every chart drawn
+  // bottom-to-top-then-right sits where it does because of it.
+  const yOrig = bottomToTop
+    ? parentContainer.visualspace.height - edgeInfo.remainingEdgeSideUnitLength
+    : 0;
+  const yInc = bottomToTop ? -1.0 * height : height;
 
   childContainers.forEach(function (c, i) {
-    c.visualspace.width = edgeInfo.remainingEdgeSideUnitLength;
-    c.visualspace.height = edgeInfo.fillingEdgeSideUnitLength;
+    c.visualspace.width = width;
+    c.visualspace.height = height;
     c.visualspace.posX = xOrig + xInc * Math.floor(i / numVerticalElement);
     c.visualspace.posY = yOrig + yInc * (i % numVerticalElement);
     c.visualspace.padding = layout.padding!;
@@ -165,38 +159,26 @@ function applyEdgeInfoVerticalDirection(
   layout: Layout,
   edgeInfo: EdgeInfo,
 ): void {
-  let xInc = 0;
-  let yInc = 0;
-  let numHoriElement = 0;
-  let xOrig = 0;
-  let yOrig = 0;
+  // The boxes run across (or back along) a row and the rows stack down y, so
+  // the filling edge is the width and the remaining edge the height.
+  const width = edgeInfo.fillingEdgeSideUnitLength;
+  const height = edgeInfo.remainingEdgeSideUnitLength;
+  const numHoriElement = edgeInfo.fillingEdgeRepetitionCount;
+  const rightToLeft =
+    layout.direction === "RLTB" || layout.direction === "RLBT";
+  const bottomToTop =
+    layout.direction === "LRBT" || layout.direction === "RLBT";
 
-  switch (layout.direction) {
-    case "LRTB":
-      xOrig = 0;
-      yOrig = 0;
-      xInc = edgeInfo.fillingEdgeSideUnitLength;
-      yInc = edgeInfo.remainingEdgeSideUnitLength;
-      numHoriElement = edgeInfo.fillingEdgeRepetitionCount;
-      break;
-    case "LRBT":
-      xOrig = 0;
-      yOrig =
-        parentContainer.visualspace.height -
-        edgeInfo.remainingEdgeSideUnitLength;
-      xInc = edgeInfo.fillingEdgeSideUnitLength;
-      yInc = -1.0 * edgeInfo.remainingEdgeSideUnitLength;
-      numHoriElement = edgeInfo.fillingEdgeRepetitionCount;
-      break;
-    case "RLBT":
-    case "RLTB":
-      console.log("TODO");
-      break;
-  }
+  const xOrig = rightToLeft ? parentContainer.visualspace.width - width : 0;
+  const xInc = rightToLeft ? -1.0 * width : width;
+  const yOrig = bottomToTop
+    ? parentContainer.visualspace.height - height
+    : 0;
+  const yInc = bottomToTop ? -1.0 * height : height;
 
   childContainers.forEach(function (c, i) {
-    c.visualspace.width = edgeInfo.fillingEdgeSideUnitLength;
-    c.visualspace.height = edgeInfo.remainingEdgeSideUnitLength;
+    c.visualspace.width = width;
+    c.visualspace.height = height;
     c.visualspace.posX = xOrig + xInc * (i % numHoriElement);
     c.visualspace.posY = yOrig + yInc * Math.floor(i / numHoriElement);
     c.visualspace.padding = layout.padding!;
@@ -250,11 +232,71 @@ export function getAvailableSpace(
       return containerwidth * containerheight;
     case "square":
       return Math.pow(Math.min(containerwidth, containerheight), 2);
-    // `custom` is accepted by the grammar but unimplemented, so there is no
-    // space to hand back; NaN carries that through to unsized boxes.
+    case "custom": {
+      // The same quantity the two above are: the area of the largest box of
+      // this level's aspect ratio that the container can hold. `square` and
+      // `parent` are the r = 1 and r = width/height cases of it.
+      const ratio = customAspectRatio(layout);
+      const fittedWidth = Math.min(containerwidth, containerheight * ratio);
+      return (fittedWidth * fittedWidth) / ratio;
+    }
     default:
       return NaN;
   }
+}
+
+/**
+ * The `width / height` a `custom` level draws its boxes at.
+ *
+ * There is no sensible ratio to fall back on -- the whole point of `custom` is
+ * that the spec supplies one -- so a level that asks for it without saying which
+ * is an error rather than a chart of unsized boxes.
+ */
+export function customAspectRatio(layout: Layout): number {
+  const ratio = layout.custom_aspect_ratio;
+  if (typeof ratio !== "number" || !Number.isFinite(ratio) || ratio <= 0) {
+    throw new Error(
+      'unit-vis: aspect_ratio "custom" needs a positive `custom_aspect_ratio` ' +
+        `on the same layout, got ${JSON.stringify(ratio)}`,
+    );
+  }
+  return ratio;
+}
+
+/** The `width / height` of one box at a packing level. */
+export function unitAspectRatio(
+  parentContainer: Container,
+  layout: Layout,
+): number {
+  switch (layout.aspect_ratio) {
+    case "square":
+      return 1;
+    case "parent":
+      return (
+        parentContainer.visualspace.width / parentContainer.visualspace.height
+      );
+    case "custom":
+      return customAspectRatio(layout);
+    default:
+      return NaN;
+  }
+}
+
+/** Everything `shelf.ts` needs to pack one container's children. */
+export function weightedPackFor(
+  parentContainer: Container,
+  childContainers: Container[],
+  layout: Layout,
+): WeightedPack {
+  return {
+    values: childContainers.map((c) => getValue(c, layout)),
+    width: parentContainer.visualspace.width,
+    height: parentContainer.visualspace.height,
+    padding: parentContainer.visualspace.padding,
+    margin: layout.margin!,
+    ratio: unitAspectRatio(parentContainer, layout),
+    direction: layout.direction!,
+  };
 }
 
 export function getPosXforFillX(
@@ -471,36 +513,49 @@ export function calcFillGridxyVisualSpaceWithUnitLength(
   }
 }
 
+/**
+ * A weighted packing level: each child gets a box of `unitLength * value` area
+ * at the level's aspect ratio, and the boxes are shelved into the parent.
+ *
+ * The unit is decided by the caller, since a shared level takes the smallest one
+ * any container in its sharing group could use and an isolated one fits its own
+ * parent -- see `weightedPackUnit`.
+ */
 export function calcPackGridxyVisualSpaceWithUnitLength(
   parentContainer: Container,
   childContainers: Container[],
   layout: Layout,
   unitLength: number,
 ): void {
-  const margin = layout.margin!;
-  switch (layout.aspect_ratio) {
-    case "square":
-      childContainers.forEach(function (c) {
-        c.visualspace.width = Math.sqrt(unitLength * getValue(c, layout));
-        c.visualspace.height = Math.sqrt(unitLength * getValue(c, layout));
-        c.visualspace.posX =
-          parentContainer.visualspace.padding.left +
-          margin.left +
-          0.5 *
-            (parentContainer.visualspace.width -
-              c.visualspace.width -
-              parentContainer.visualspace.padding.left -
-              parentContainer.visualspace.padding.right);
-        c.visualspace.posY =
-          parentContainer.visualspace.padding.top +
-          margin.top +
-          0.5 *
-            (parentContainer.visualspace.height -
-              c.visualspace.height -
-              parentContainer.visualspace.padding.top -
-              parentContainer.visualspace.padding.right);
-      });
+  // A weighted `maxfill` is a treemap, which has already placed these boxes and
+  // fills its parent by construction; there is no unit for it to re-apply.
+  if (layout.aspect_ratio === "maxfill") {
+    return;
   }
+
+  const rects = weightedPackRects(
+    weightedPackFor(parentContainer, childContainers, layout),
+    unitLength,
+  );
+
+  childContainers.forEach(function (c, i) {
+    c.visualspace.width = rects[i].width;
+    c.visualspace.height = rects[i].height;
+    c.visualspace.posX = rects[i].x;
+    c.visualspace.posY = rects[i].y;
+    c.visualspace.padding = layout.padding!;
+  });
+}
+
+/** The largest unit a weighted packing level can give this container. */
+export function calcPackGridxyUnitLength(
+  parentContainer: Container,
+  childContainers: Container[],
+  layout: Layout,
+): number {
+  return weightedPackUnit(
+    weightedPackFor(parentContainer, childContainers, layout),
+  );
 }
 
 export function getSharingAncestorContainer(

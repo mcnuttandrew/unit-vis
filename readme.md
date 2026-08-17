@@ -68,12 +68,15 @@ also means it recomputes incrementally: change a signal, push new data through
 `view.change`, or insert a `filter` transform ahead of the layout, and vega
 re-lays out only what moved.
 
-One case is not portable. A `maxfill` level with a `sum`/`count` size is a
-squarified treemap, which is a sequential algorithm rather than a reduction, so
-it is registered as a custom vega transform (see
-[treemap-transform.ts](packages/unit-vis-vega/src/treemap-transform.ts)) and
-only runs where this package has been loaded. `isPortable(spec)` tells you which
-kind of spec you have.
+Two cases are not portable, both of them levels whose boxes carry a value by
+area. A `maxfill` level with a `sum`/`count` size is a squarified treemap; a
+`square`, `parent` or `custom` level with one is a shelf packing scaled to fit
+its parent. Both are sequences of decisions rather than reductions, so both are
+registered as custom vega transforms (see
+[treemap-transform.ts](packages/unit-vis-vega/src/treemap-transform.ts) and
+[shelf-transform.ts](packages/unit-vis-vega/src/shelf-transform.ts)) and only run
+where this package has been loaded. `isPortable(spec)` tells you which kind of
+spec you have.
 
 Now you might want to embed this library in a react component, perfectly normal thing to want to do. You can do that via
 

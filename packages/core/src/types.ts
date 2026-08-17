@@ -457,9 +457,8 @@ export interface Spec {
  * a column and advances columns left-to-right. A four-letter form also works
  * for a fill layout, which just reads whichever axis it needs.
  *
- * Only `LRTB`, `LRBT`, `TBLR` and `BTLR` are implemented for packing. The
- * right-to-left packing orders (`RLTB`, `RLBT`, `TBRL`, `BTRL`) are accepted by
- * the grammar but unimplemented, and produce unpositioned containers.
+ * All eight four-letter orders are implemented, for grid packing and for
+ * weighted packing alike.
  *
  * @default "LRBT"
  */
@@ -534,10 +533,15 @@ export type layoutTypes =
  *   large as possible. With a `uniform` size that is a plain grid; with a
  *   `sum`/`count` size it becomes a squarified treemap (see `Layout.size`).
  *   The usual choice for a final `flatten` level.
- * - `square` — pack into square boxes, centered in the parent.
+ * - `square` — pack into square boxes.
  * - `parent` — pack into boxes with the parent's own aspect ratio.
- * - `custom` — accepted by the grammar but unimplemented; there is no field to
- *   supply the custom ratio, and the resulting boxes are unsized.
+ * - `custom` — pack into boxes of the ratio `custom_aspect_ratio` gives.
+ *
+ * The last three lay out a grid of equal boxes under a `uniform` size, and a
+ * shelf packing of boxes whose *area* carries the value under a `sum`/`count`
+ * one — big box, big value, with the level's aspect ratio kept and some space
+ * left at the end of each shelf. `maxfill`'s treemap is the other trade: no
+ * wasted space, no fixed aspect ratio.
  *
  * @default "maxfill"
  */
@@ -618,6 +622,15 @@ export interface Layout {
   aspect_ratio?: aspectRatio;
 
   /**
+   * The `width / height` this level draws its boxes at, for
+   * `aspect_ratio: "custom"`. `1` is a square, `2` twice as wide as it is tall.
+   *
+   * Required by `custom` and ignored by every other aspect ratio — a `custom`
+   * level without it is an error rather than a chart of unsized boxes.
+   */
+  custom_aspect_ratio?: number;
+
+  /**
    * Internal. The previous layout in the pipeline, linked up by the engine at
    * render time. Do not set it in a spec.
    */
@@ -653,17 +666,17 @@ export interface Layout {
      * - `count` — the number of rows in the child
      * - `sum` — the sum of `key` over the child's rows
      *
-     * With `aspect_ratio: "maxfill"`, anything other than `uniform` switches
-     * the level to a squarified treemap, which reads `key` off the *first* row
-     * of each child — so treemaps want a `flatten` level, where each child
-     * holds exactly one row.
+     * A `fillX`/`fillY` level turns the share into a length, so this is what
+     * makes a bar proportional. A packing level turns it into an area:
+     * `maxfill` squarifies the children into a treemap, and `square`, `parent`
+     * and `custom` shelf-pack boxes of that area at their own aspect ratio.
      *
      * @default "uniform"
      */
     type?: "uniform" | "sum" | "count";
     /**
-     * The numeric field summed by `type: "sum"` (and read by the `maxfill`
-     * treemap). Ignored by the other size types.
+     * The numeric field summed by `type: "sum"`. Ignored by the other size
+     * types.
      */
     key?: string;
   };

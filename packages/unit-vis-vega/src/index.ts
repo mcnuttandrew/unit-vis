@@ -44,6 +44,7 @@ export function UnitChart(divId: string, spec: Spec): Promise<View | null> {
 export default UnitChart;
 
 export {default as drawUnitVega, buildVegaSpec, isPortable} from './drawing.js';
-export {buildLayoutData} from './layout.js';
+export {buildLayoutData, levelName} from './layout.js';
 export {TREEMAP_TRANSFORM, registerTreemapTransform} from './treemap-transform.js';
+export {SHELF_TRANSFORM, registerShelfTransform} from './shelf-transform.js';
 export * from '@unit-vis/core';

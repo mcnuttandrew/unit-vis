@@ -17,7 +17,8 @@ Three kinds of gap, in descending order of how surprising they are:
   the paper builds with it is out of reach.
 
 Everything under *Dead* was confirmed by running it through `buildScene`, and the
-observed output is quoted with each entry.
+observed output is quoted with each entry. *Closed*, at the end, records the
+entries that used to be here.
 
 ---
 
@@ -26,14 +27,14 @@ observed output is quoted with each entry.
 ### 1. The `FILTER` data operation
 
 Rule 5 gives a layout's data half four operations: `BIN`, `DUPLICATE`, `FILTER`,
-`FLATTEN`. `subgroup.type` ([types.ts:561](../packages/core/src/types.ts#L561))
+`FLATTEN`. `subgroup.type` ([types.ts:584](../packages/core/src/types.ts#L584))
 offers `groupby | bin | flatten | passthrough`. There is no filter anywhere in
 the grammar, the engine, or either backend — a spec cannot drop rows.
 
 ### 2. The `MAP2D` visual operation
 
 Rule 9 lists `MAP2D | FILLX | FILLY | MAXFILL | PACK`. `aspectRatio`
-([types.ts:525](../packages/core/src/types.ts#L525)) has no member that maps a
+([types.ts:548](../packages/core/src/types.ts#L548)) has no member that maps a
 row to a position, so the entire overlapping-layout branch of Fig. 5 is missing.
 Table 2 expresses scatterplots, bubble charts, choropleths, and the image half of
 Histoimages with `Map2D`; none of them can be written here.
@@ -41,7 +42,7 @@ Histoimages with `Map2D`; none of them can be written here.
 ### 3. Mark alignment
 
 Rule 10 is `⟨Marks⟩ ::= ⟨Size⟩⟨Shape⟩⟨Alignment⟩⟨isShared⟩`. `Mark`
-([types.ts:97](../packages/core/src/types.ts#L97)) has `color`, `size`, `shape`,
+([types.ts:112](../packages/core/src/types.ts#L112)) has `color`, `size`, `shape`,
 and no alignment. The layout-level `align` is a different knob and is read only
 by `fillX`/`fillY`, so Table 2's center-aligned pack (hierarchical axes) has no
 expression.
@@ -55,7 +56,7 @@ backends assume a cartesian box throughout.
 
 ### 5. Jittering and physicalization
 
-Fig. 5's taxonomy of layout operations has four leaves this library does not
+Fig. 5's taxonomy of layout operations has three leaves this library does not
 reach: `Map2D` and `jittering` under overlapping, `physicalization` under
 packing. Table 1 classifies Kinetica, TouchViz, and the constructive-visualization
 work under the last of these.
@@ -77,86 +78,31 @@ within reach, but nothing in the grammar addresses it.
 `SizePolicies` ([types.ts:27](../packages/core/src/types.ts#L27)) is
 `uniform | count | sum | max`, and Rules 11–12 make size a data function.
 Only `max` draws: both backends fall through to a radius of 0, i.e. invisible
-marks — [drawing.ts:393](../packages/unit-vis-vega/src/drawing.ts#L393) and
-[drawing.ts:70](../packages/unit-vis/src/drawing.ts#L70). Table 2's bubble chart
-and quantum treemap both need variable-size marks.
+marks — [drawing.ts:505](../packages/unit-vis-vega/src/drawing.ts#L505) and
+[drawing.ts:78](../packages/unit-vis/src/drawing.ts#L78). Table 2's bubble chart
+needs variable-size marks; note that a *container* can now carry a value by area
+(see *Closed*, below), so this is the mark-level half of that alone.
 
-### 8. `maxfill` with `size.type: "count"` draws nothing
-
-A non-uniform `maxfill` routes to the squarified treemap, which reads its weight
-off `size.key` ([layout.ts:355](../packages/core/src/layout.ts#L355)) — a field
-`count` never sets. Every weight is `NaN`, the positive-weight filter drops every
-child, and the level comes back empty. Fig. 4 shows MaxFill × Count as an
-ordinary cell of the design space.
-
-```
-groupby g, maxfill, size {type: count} →  1:NaN,NaN 0x0 | 0:NaN,NaN 0x0 | 1:NaN,NaN 0x0 …
-```
-
-### 9. Weighted packing (`square` / `parent` with `count` or `sum`)
-
-The bottom row of Fig. 4, and the layout of both novel visualizations the paper
-generates (Fig. 9 and Fig. 10, "Pack, Size: Sum, Shared"). Three sub-cases, all
-wrong:
-
-- **`square` + `isShared: true`** sizes the boxes by area correctly and then
-  centers every one of them in the parent, so siblings sit concentrically on top
-  of each other. [utils.ts:474-504](../packages/core/src/utils.ts#L474-L504);
-  the vega backend reproduces it faithfully in `sharedSquareUnit`.
-- **`square` + `isShared: false`** ignores the weights and emits a uniform grid.
-- **`parent`, either sharing mode** ignores the weights; the shared path's
-  `switch` has no `parent` arm at all.
-
-```
-square, sum, shared    →  a:258,138 215x215 | b:201,81 328x328 | c:226,106 277x277   (all overlapping)
-square, sum, unshared  →  a:0,240 240x240   | b:240,240 240x240 | c:480,240 240x240  (weights ignored)
-parent, sum, shared    →  a:0,240 360x240   | b:360,240 360x240 | c:0,0 360x240      (weights ignored)
-```
-
-### 10. Right-to-left packing directions
-
-`RLTB`, `RLBT`, `TBRL`, and `BTRL` are members of `Direction`
-([types.ts:447](../packages/core/src/types.ts#L447)). The engine logs `TODO` and
-leaves the containers unpositioned
-([utils.ts:149](../packages/core/src/utils.ts#L149),
-[utils.ts:193](../packages/core/src/utils.ts#L193)); the vega backend mirrors
-this with an explicit `unpositioned()` rather than inventing a placement.
-
-```
-flatten, maxfill, direction RLTB →  4:NaN,NaN 240x240 | 3:NaN,NaN 240x240 …
-```
-
-### 11. `aspect_ratio: "custom"`
-
-Accepted by the grammar, but there is no field to supply the custom ratio, so the
-ratio is `NaN` and the boxes are unsized —
-[layout.ts:324](../packages/core/src/layout.ts#L324),
-[utils.ts:253](../packages/core/src/utils.ts#L253).
-
-```
-flatten, custom →  4:0,NaN 720xNaN | 3:0,NaN 720xNaN …
-```
-
-### 12. `Layout.type` values other than `gridxy`
+### 8. `Layout.type` values other than `gridxy`
 
 `type` is declared as `layoutTypes`
-([types.ts:703](../packages/core/src/types.ts#L703)), so `flatten`, `groupby`,
+([types.ts:735](../packages/core/src/types.ts#L735)), so `flatten`, `groupby`,
 `bin`, and `passthrough` all typecheck as layout *algorithms* and reach
 `console.log('Unsupported Layout type')`
-([layout.ts:423](../packages/core/src/layout.ts#L423)). The field has exactly one
+([layout.ts:467](../packages/core/src/layout.ts#L467)). The field has exactly one
 legal value and the type says otherwise.
 
-### 13. Color scale types
+### 9. Color scale types
 
 `mark.color.type` admits only `categorical`, and the library's own default writes
 `"uniform"` — a value outside the declared union
 ([constants.ts](../packages/core/src/constants.ts)). The vega backend never reads
 the field; the d3 backend answers a non-categorical type with
 `console.log('TODO')` and colors ordinally anyway
-([drawing.ts:55](../packages/unit-vis/src/drawing.ts#L55)). There is no
+([drawing.ts:60](../packages/unit-vis/src/drawing.ts#L60)). There is no
 quantitative or sequential color scale.
 
-### 14. Color sharing
+### 10. Color sharing
 
 Rules 8 and 10 attach an `isShared` flag to marks as well as to layouts, and the
 paper's own example spec (Fig. 6) carries `"isColorScaleShared": true`. Both
@@ -164,13 +110,15 @@ paper's own example spec (Fig. 6) carries `"isColorScaleShared": true`. Both
 the color scale is always built across the whole chart. 35 of the bundled example
 specs set the flag.
 
-### 15. `subgroup.aspect_ratio`
+### 11. `subgroup.aspect_ratio`
 
 Declared as a number on the subgroup
-([types.ts:575](../packages/core/src/types.ts#L575)), never read by anything. A
-level's aspect ratio comes from `Layout.aspect_ratio`, one level up.
+([types.ts:598](../packages/core/src/types.ts#L598)), never read by anything. A
+level's aspect ratio comes from `Layout.aspect_ratio`, one level up, and the one
+ratio a spec supplies as a number is `Layout.custom_aspect_ratio` — so this field
+has no remaining job, and the honest fix is to delete it.
 
-### 16. `spec.title`
+### 12. `spec.title`
 
 Carried through the spec and rendered by neither backend.
 
@@ -178,7 +126,7 @@ Carried through the spec and rendered by neither backend.
 
 ## Weakened
 
-### 17. `passthrough` is a degenerate `DUPLICATE`
+### 13. `passthrough` is a degenerate `DUPLICATE`
 
 The paper's `DUPLICATE` copies the dataset into *n* subcontainers; §5.2 uses it
 to build repeated charts, and Table 2 expresses Histoimages as "FillX
@@ -187,7 +135,7 @@ to build repeated charts, and Table 2 expresses Histoimages as "FillX
 child, so it inserts a level of space policy but never replicates data across
 views.
 
-### 18. `sort` reaches only `flatten` levels
+### 14. `sort` reaches only `flatten` levels
 
 `groupby` children come out in first-seen order and `bin` children in edge order,
 with no way to reorder either — `makeContainersForFlatten` is the only reader of
@@ -196,22 +144,15 @@ level only. `applyDefault` also writes a sort onto *every* layout keyed to
 `survived`, a leftover from the Titanic examples that applies to data which has no
 such field.
 
-### 19. Treemap weights come off the first row
-
-The squarified treemap reads `size.key` from `contents[0]` of each child
-([layout.ts:355](../packages/core/src/layout.ts#L355)), so it needs a `flatten`
-above it and a treemap of *groups* sized by their aggregate — Table 2's quantum
-treemap — is out of reach.
-
-### 20. No axes; labels and legends are vega-only
+### 15. No axes; labels and legends are vega-only
 
 The grammar has no axis production, which is deliberate: annotations come from
 labelled containers. This fork added `labels` and `legend`
-([types.ts:244](../packages/core/src/types.ts#L244),
-[types.ts:289](../packages/core/src/types.ts#L289)) to cover that ground, and the
+([types.ts:263](../packages/core/src/types.ts#L263),
+[types.ts:308](../packages/core/src/types.ts#L308)) to cover that ground, and the
 d3 backend ignores both.
 
-### 21. Icon and image marks are vega-only
+### 16. Icon and image marks are vega-only
 
 Rule 13 makes a mark's shape `circle | rect`, but Table 1 tracks *Icon* and
 *Images* as unit representations and Table 2 expresses Isotypes, PivotViewer, and
@@ -226,17 +167,53 @@ out of reach.
 
 ---
 
+## Closed
+
+What used to sit under *Dead* as entries 8–11, and the *Weakened* entry that went
+with them. Both backends implement each of these, and
+[test/packing.test.ts](../test/packing.test.ts) holds them to it — every case is
+asserted on the engine's boxes and the compiled dataflow's at once.
+
+- **Weighted `maxfill` under `size.type: "count"`** drew nothing: the treemap
+  read its weight off `size.key`, a field `count` never sets, so every weight was
+  `NaN` and every child was dropped. The weight is now `getValue`, the same
+  quantity every other weighted level divides its space by
+  ([layout.ts:399](../packages/core/src/layout.ts#L399)).
+- **Treemap weights came off the first row** of each child, so a treemap needed a
+  `flatten` above it. The same change fixes it: `sum` aggregates over the child's
+  rows, so Table 2's quantum treemap — a treemap of *groups*, sized by their
+  total — is now expressible.
+- **Weighted `square`/`parent` packing** either centered every box on top of its
+  siblings or ignored the weights entirely. It is now a shelf packing, largest
+  box first, scaled to fit the parent, at the level's own aspect ratio
+  ([shelf.ts](../packages/core/src/shelf.ts)) — Fig. 4's bottom row, and the
+  layout both of the paper's novel visualizations (Figs. 9–10, "Pack, Size: Sum,
+  Shared") are built from. Sharing works as it does for a fill level: one area
+  per unit of weight across the whole sharing group.
+- **The right-to-left packing directions** `RLTB`, `RLBT`, `TBRL` and `BTRL`
+  logged `TODO` and left the containers unpositioned. All eight orders now place
+  their boxes, mirrored on whichever axis runs backwards
+  ([utils.ts](../packages/core/src/utils.ts)).
+- **`aspect_ratio: "custom"`** had no field to supply the ratio, so its boxes
+  came out unsized. `Layout.custom_aspect_ratio`
+  ([types.ts:631](../packages/core/src/types.ts#L631)) is that field, and a
+  `custom` level without it now raises rather than drawing `NaN`.
+
+The two weighted packings are the parts of the grammar that need a transform vega
+does not ship, so a spec using either compiles to a dataflow that runs only where
+`unit-vis-vega` has been loaded; `isPortable` reports which specs those are.
+
+---
+
 ## Where to start
 
-Items 8 through 11 are the ones that bite: each is reachable from a spec that
-validates against the schema, and each fails to a blank or overlapping chart
-rather than an error. Making them throw would be a smaller change than making
-them work, and would cost nothing that anyone can currently draw.
+Of what is left, item 7 is the one that still bites: `mark.size.type` accepts
+four values, three of them draw nothing, and the spec validates either way.
+Making the three raise would be a small change, and the containers underneath the
+marks already carry a value by area, so a bubble chart is a mark-radius scale
+away rather than a layout away.
 
-Item 9 is also the largest genuine expressivity gap that the existing
-architecture could absorb — weighted packing is one algorithm away, and it is
-what both of the paper's novel visualizations are built from. Item 2, `MAP2D`, is
-the largest gap overall, but it is a second layout family rather than a missing
-case: nothing in the container tree assumes non-overlap, so the work is a new
-`aspect_ratio` arm in the engine and a matching dataflow stage in the vega
-compiler.
+Item 2, `MAP2D`, is the largest gap overall. It is a second layout family rather
+than a missing case: nothing in the container tree assumes non-overlap, so the
+work is a new `aspect_ratio` arm in the engine and a matching dataflow stage in
+the vega compiler.

@@ -103,9 +103,21 @@
               "const": "categorical"
             },
             "scheme": {
-              "$ref": "#/definitions/Schemes",
-              "description": "The categorical palette used for `color.key`.",
-              "default": "schemeCategory10"
+              "description": "The categorical palette used for `color.key`.\n\nA categorical color palette, named the way d3-scale-chromatic names them.\n\nThe vega backend translates these to its own scheme names, so the same value\nworks on both backends.\n\n- `schemeCategory10` — 10 colors, the general-purpose default\n- `schemeTableau10` — 10 colors, Tableau's palette\n- `schemeAccent`, `schemeDark2`, `schemeSet1`, `schemeSet2`, `schemeSet3` —\n  8-12 saturated colors, good for marks on a light background\n- `schemePaired` — 12 colors in light/dark pairs, for nested categories\n- `schemePastel1`, `schemePastel2` — muted, good for large filled areas",
+              "default": "schemeCategory10",
+              "enum": [
+                "schemeAccent",
+                "schemeCategory10",
+                "schemeDark2",
+                "schemePaired",
+                "schemePastel1",
+                "schemePastel2",
+                "schemeSet1",
+                "schemeSet2",
+                "schemeSet3",
+                "schemeTableau10"
+              ],
+              "type": "string"
             },
             "isShared": {
               "description": "Reserved. Read by neither backend today; the color scale is always built\nacross the whole chart.",
@@ -123,8 +135,14 @@
               "type": "boolean"
             },
             "type": {
-              "$ref": "#/definitions/SizePolicies",
-              "description": "The sizing rule. Use `max`, which inscribes the circle in its container\n(radius = half the container's shorter side). The other values are\nunimplemented and render a radius of 0, i.e. invisible marks.",
+              "description": "The sizing rule. Use `max`, which inscribes the circle in its container\n(radius = half the container's shorter side). The other values are\nunimplemented and render a radius of 0, i.e. invisible marks.\n\nHow big a unit mark is drawn inside the container the layout gave it.\n\nOnly `max` is implemented: it inscribes the mark in its container. The other\nvalues fall through to a radius of 0, which draws nothing — they are\nplaceholders for size policies the paper describes but this library does not\nimplement yet. Use `max` unless you want the marks hidden.",
+              "enum": [
+                "count",
+                "max",
+                "sum",
+                "uniform"
+              ],
+              "type": "string",
               "default": "max"
             }
           }
@@ -143,20 +161,144 @@
           "type": "string"
         },
         "emoji": {
-          "$ref": "#/definitions/MarkContent",
-          "description": "The glyph a `shape: \"emoji\"` mark draws — `\"🐧\"` for the same one\neverywhere, or `{\"key\": \"species\", \"range\": [...]}` for one per category.\n\nVega backend only."
+          "description": "The glyph a `shape: \"emoji\"` mark draws — `\"🐧\"` for the same one\neverywhere, or `{\"key\": \"species\", \"range\": [...]}` for one per category.\n\nVega backend only.\n\nWhat a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "description": "The data field to read.",
+                  "type": "string"
+                },
+                "domain": {
+                  "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "range": {
+                  "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "default": {
+                  "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "text": {
-          "$ref": "#/definitions/MarkContent",
-          "description": "The string a `shape: \"text\"` mark draws. Usually `{\"key\": \"name\"}`, i.e.\neach unit labelled with its own value of a field.\n\nText is set at whatever size keeps it inside its container, which is a\nper-string, per-container decision — so turn on `mark.size.isShared` to\nhave every string set at one size, the one that fits everywhere.\n\nVega backend only."
+          "description": "The string a `shape: \"text\"` mark draws. Usually `{\"key\": \"name\"}`, i.e.\neach unit labelled with its own value of a field.\n\nText is set at whatever size keeps it inside its container, which is a\nper-string, per-container decision — so turn on `mark.size.isShared` to\nhave every string set at one size, the one that fits everywhere.\n\nVega backend only.\n\nWhat a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "description": "The data field to read.",
+                  "type": "string"
+                },
+                "domain": {
+                  "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "range": {
+                  "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "default": {
+                  "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "path": {
-          "$ref": "#/definitions/MarkContent",
-          "description": "The outline a `shape: \"path\"` mark draws, as an SVG path string.\n\nThe path is read in a square box running from (-1, -1) to (1, 1) with the\norigin at the mark's center, and scaled so that box is the container's\ninscribed square. `\"M0,-1L1,1L-1,1Z\"` is a triangle filling the container.\nTakes `mark.color` like a circle does.\n\nVega backend only."
+          "description": "The outline a `shape: \"path\"` mark draws, as an SVG path string.\n\nThe path is read in a square box running from (-1, -1) to (1, 1) with the\norigin at the mark's center, and scaled so that box is the container's\ninscribed square. `\"M0,-1L1,1L-1,1Z\"` is a triangle filling the container.\nTakes `mark.color` like a circle does.\n\nVega backend only.\n\nWhat a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "description": "The data field to read.",
+                  "type": "string"
+                },
+                "domain": {
+                  "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "range": {
+                  "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "default": {
+                  "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "image": {
-          "$ref": "#/definitions/MarkContent",
-          "description": "The picture a `shape: \"image\"` mark draws, as a url or a data uri. The\nimage is fit inside the container's inscribed square with its aspect ratio\nkept, so a non-square picture is letterboxed rather than stretched.\n\nVega backend only."
+          "description": "The picture a `shape: \"image\"` mark draws, as a url or a data uri. The\nimage is fit inside the container's inscribed square with its aspect ratio\nkept, so a non-square picture is letterboxed rather than stretched.\n\nVega backend only.\n\nWhat a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "description": "The data field to read.",
+                  "type": "string"
+                },
+                "domain": {
+                  "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "range": {
+                  "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "default": {
+                  "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "fontSize": {
           "description": "Type size in pixels for `emoji` and `text` marks.\n\nLeft unset, an emoji is drawn one container across and text is shrunk to\nwhatever size keeps the string inside its container. Set it and the marks\nare drawn at that size whatever their container, which is what makes a\nchart of text legible at the cost of letting long strings overlap.\n\nVega backend only.",
@@ -253,7 +395,16 @@
               "description": "Inline rows, as an array of flat objects. Use instead of `url` when the\ndata is small enough to live in the spec.",
               "type": "array",
               "items": {
-                "$ref": "#/definitions/DataRow"
+                "description": "One row of the input data: a flat object of field name to value. Fields\nloaded from CSV arrive as strings.",
+                "type": "object",
+                "additionalProperties": {
+                  "description": "A single field value on a data row. CSV sources produce only strings; JSON\nsources keep whatever scalar they were written with.",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                }
               }
             }
           }
@@ -262,7 +413,291 @@
           "description": "The subdivision pipeline, applied in order, outermost split first.\n\nLevel `n` runs over every container produced by level `n - 1`. Most charts\nend with a `flatten` level so that the final containers hold one row each\nand the marks have somewhere to sit.",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Layout"
+            "description": "One level of subdivision.\n\nA layout does two things to every container handed to it: `subgroup` decides\nhow that container's rows are split into children, and `aspect_ratio` /\n`size` / `direction` / `align` decide how the container's space is divided\namong them. `padding`, `margin` and `box` then handle spacing and styling.",
+            "type": "object",
+            "properties": {
+              "subgroup": {
+                "description": "How each container's rows are split into child containers — the data half\nof the level.",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "description": "The split rule.\n\n- `groupby` — one child per distinct value of `key`. The usual\n  categorical split.\n- `bin` — one child per interval of the numeric field `key`, cut into\n  `numBin` equal-width bins over the data's extent. Rows with an empty\n  value collect in a leading bin labelled `-`. Makes histograms.\n- `flatten` — one child per row. Normally the last level, so that each\n  row gets a box for its mark. Honors `sort`.\n- `passthrough` — one child holding all the rows, unchanged. Used to\n  insert an extra level of space policy (a nested `fillY` inside a\n  `fillX`, say) without splitting the data further.\n\nThe union of every value accepted by `Layout.type` and `Layout.subgroup.type`\n— the two fields take disjoint halves of it.\n\n`Layout.type` takes only `gridxy`. `Layout.subgroup.type` takes `groupby`,\n`bin`, `flatten` or `passthrough`. See those fields for what each does.",
+                    "enum": [
+                      "bin",
+                      "flatten",
+                      "gridxy",
+                      "groupby",
+                      "passthrough"
+                    ],
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "The data field to split on. Required by `groupby` and `bin`; ignored by\n`flatten` and `passthrough`.",
+                    "type": "string"
+                  },
+                  "numBin": {
+                    "description": "Number of equal-width bins for a `bin` subgroup. Ignored otherwise.",
+                    "type": "number"
+                  },
+                  "aspect_ratio": {
+                    "description": "Reserved. Not read by the layout engine — the aspect ratio of a level is\nset by `Layout.aspect_ratio`, one level up from here.",
+                    "type": "number"
+                  },
+                  "isShared": {
+                    "description": "Share the set of subgroups across sibling containers instead of deriving\nit from each container's own rows.\n\nWith `groupby`, every container gets the same categories in the same\norder, including empty ones — which is what keeps small multiples\naligned and comparable. With `bin`, the bin edges are computed over the\nshared extent, so bins line up across containers.\n\nLeave false and each container gets only the groups its own rows\ncontain, so sibling containers can end up with different, misaligned\nsubgroups.",
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              },
+              "aspect_ratio": {
+                "description": "How this level divides space among the children `subgroup` produced.\n\nHow a layout turns its parent's space into boxes for its children — the\nchoice that separates a bar chart from a treemap.\n\n- `fillX` — lay the children out in a row, each spanning the parent's full\n  height and taking a share of its width. Widths come from `size`, order\n  from `direction`, placement from `align`. This is the bar-chart /\n  column-of-groups case.\n- `fillY` — the same, transposed: a column of children, each spanning the\n  full width, sharing the height.\n- `maxfill` — pack the children into a grid chosen to make the boxes as\n  large as possible. With a `uniform` size that is a plain grid; with a\n  `sum`/`count` size it becomes a squarified treemap (see `Layout.size`).\n  The usual choice for a final `flatten` level.\n- `square` — pack into square boxes.\n- `parent` — pack into boxes with the parent's own aspect ratio.\n- `custom` — pack into boxes of the ratio `custom_aspect_ratio` gives.\n\nThe last three lay out a grid of equal boxes under a `uniform` size, and a\nshelf packing of boxes whose *area* carries the value under a `sum`/`count`\none — big box, big value, with the level's aspect ratio kept and some space\nleft at the end of each shelf. `maxfill`'s treemap is the other trade: no\nwasted space, no fixed aspect ratio.",
+                "default": "maxfill",
+                "enum": [
+                  "custom",
+                  "fillX",
+                  "fillY",
+                  "maxfill",
+                  "parent",
+                  "square"
+                ],
+                "type": "string"
+              },
+              "custom_aspect_ratio": {
+                "description": "The `width / height` this level draws its boxes at, for\n`aspect_ratio: \"custom\"`. `1` is a square, `2` twice as wide as it is tall.\n\nRequired by `custom` and ignored by every other aspect ratio — a `custom`\nlevel without it is an error rather than a chart of unsized boxes.",
+                "type": "number"
+              },
+              "parent": {
+                "description": "Internal. The previous layout in the pipeline, linked up by the engine at\nrender time. Do not set it in a spec.",
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Layout"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "child": {
+                "description": "Internal. The next layout in the pipeline, linked up by the engine at\nrender time. Do not set it in a spec.",
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Layout"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "size": {
+                "description": "How much of the parent's space each child claims — the quantitative half of\nthe level, and what makes a bar proportional to anything.",
+                "type": "object",
+                "properties": {
+                  "isShared": {
+                    "description": "Compute one unit length across every container at this level rather than\nper parent container.\n\nShared is what makes lengths comparable across the chart: two bars in\ndifferent groups mean the same thing only if one row is worth the same\nnumber of pixels in both. Unshared lets each parent container use its\nfull space, so each group is scaled to its own total.",
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "type": {
+                    "description": "What each child's share is proportional to.\n\n- `uniform` — equal shares, regardless of how many rows a child holds\n- `count` — the number of rows in the child\n- `sum` — the sum of `key` over the child's rows\n\nA `fillX`/`fillY` level turns the share into a length, so this is what\nmakes a bar proportional. A packing level turns it into an area:\n`maxfill` squarifies the children into a treemap, and `square`, `parent`\nand `custom` shelf-pack boxes of that area at their own aspect ratio.",
+                    "default": "uniform",
+                    "enum": [
+                      "count",
+                      "sum",
+                      "uniform"
+                    ],
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "The numeric field summed by `type: \"sum\"`. Ignored by the other size\ntypes.",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": {
+                "description": "An identifier for this level. Used by `spec.labels.layouts` to pick levels\nto label, and by the d3 backend as the css class on the level's `<g>`\nelements. Otherwise for your own readability.",
+                "type": "string"
+              },
+              "box": {
+                "description": "Styling for the rectangle drawn behind each container at this level. These\nare the mosaic tiles, the bar bodies, the small-multiple panels — the boxes\nthe marks sit in.\n\nNote that a `flatten` level's box is overwritten with the library default\n(white fill, gray stroke, zero stroke width, 0.5 opacity), since its boxes\nare one per row and are normally covered by the mark anyway.",
+                "type": "object",
+                "properties": {
+                  "opacity": {
+                    "description": "Fill opacity, 0 to 1.",
+                    "default": 0.5,
+                    "type": "number"
+                  },
+                  "fill": {
+                    "description": "CSS fill color, or `\"none\"` for an unfilled box.",
+                    "default": "white",
+                    "type": "string"
+                  },
+                  "stroke": {
+                    "description": "CSS stroke color for the box outline.",
+                    "default": "gray",
+                    "type": "string"
+                  },
+                  "stroke-width": {
+                    "description": "Outline width in pixels. Set to 0 to hide the outline while keeping the\nfill.",
+                    "default": 1,
+                    "type": [
+                      "string",
+                      "number"
+                    ]
+                  }
+                }
+              },
+              "type": {
+                "description": "The layout algorithm. Only `gridxy` is implemented — it covers every\n`aspect_ratio` above. Any other value leaves this level's containers\nunsized.\n\nThe union of every value accepted by `Layout.type` and `Layout.subgroup.type`\n— the two fields take disjoint halves of it.\n\n`Layout.type` takes only `gridxy`. `Layout.subgroup.type` takes `groupby`,\n`bin`, `flatten` or `passthrough`. See those fields for what each does.",
+                "enum": [
+                  "bin",
+                  "flatten",
+                  "gridxy",
+                  "groupby",
+                  "passthrough"
+                ],
+                "type": "string",
+                "default": "gridxy"
+              },
+              "sizeSharingGroup": {
+                "description": "Internal. Scratch space the engine uses while resolving\n`size.isShared`. Do not set it in a spec.",
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Container"
+                }
+              },
+              "padding": {
+                "description": "Inset applied inside each container this level produces, i.e. the gutter\nthe *next* level lays out within. Use this to keep nested containers from\ntouching their parent's edge.\n\nWhen a spec has more than one layout, the first level's padding is\noverwritten with 5 on every side.\n\nSpace reserved *inside* a box, in pixels. Content laid out within the box is\ninset by these amounts on each side.\n\nContrast with a layout's `margin`, which is space reserved *outside* each\ncontainer it produces.",
+                "type": "object",
+                "properties": {
+                  "top": {
+                    "description": "Pixels of inset along the top edge.",
+                    "type": "number"
+                  },
+                  "left": {
+                    "description": "Pixels of inset along the left edge.",
+                    "type": "number"
+                  },
+                  "right": {
+                    "description": "Pixels of inset along the right edge.",
+                    "type": "number"
+                  },
+                  "bottom": {
+                    "description": "Pixels of inset along the bottom edge.",
+                    "type": "number"
+                  }
+                },
+                "default": {
+                  "top": 0,
+                  "left": 0,
+                  "bottom": 0,
+                  "right": 0
+                }
+              },
+              "margin": {
+                "description": "Gap around each container this level produces, taken out of the space\nbeing divided — so it separates siblings from each other rather than\ninsetting their contents. This is the gap between bars, between mosaic\ntiles, between small-multiple panels.\n\nWhen a spec has more than one layout, the first level's margin is\noverwritten with 5 on every side, and any `flatten` level's margin is\noverwritten with 0.\n\nSpace reserved *inside* a box, in pixels. Content laid out within the box is\ninset by these amounts on each side.\n\nContrast with a layout's `margin`, which is space reserved *outside* each\ncontainer it produces.",
+                "type": "object",
+                "properties": {
+                  "top": {
+                    "description": "Pixels of inset along the top edge.",
+                    "type": "number"
+                  },
+                  "left": {
+                    "description": "Pixels of inset along the left edge.",
+                    "type": "number"
+                  },
+                  "right": {
+                    "description": "Pixels of inset along the right edge.",
+                    "type": "number"
+                  },
+                  "bottom": {
+                    "description": "Pixels of inset along the bottom edge.",
+                    "type": "number"
+                  }
+                },
+                "default": {
+                  "top": 0,
+                  "left": 0,
+                  "bottom": 0,
+                  "right": 0
+                }
+              },
+              "direction": {
+                "description": "The order in which children are placed into the space this level divides.\n\nThe order in which a layout fills the space it was given.\n\nTwo-letter forms name a single axis and are for `fillX`/`fillY` layouts:\n`LR` left-to-right, `RL` right-to-left, `TB` top-to-bottom, `BT`\nbottom-to-top. `fillX` reads the horizontal sense, `fillY` the vertical one.\n\nFour-letter forms name a fill axis and then a wrap axis, and are for packing\nlayouts (`square`, `parent`, `maxfill`). `LRTB` runs units left-to-right\nalong a row and stacks rows top-to-bottom; `BTLR` runs them bottom-to-top up\na column and advances columns left-to-right. A four-letter form also works\nfor a fill layout, which just reads whichever axis it needs.\n\nAll eight four-letter orders are implemented, for grid packing and for\nweighted packing alike.",
+                "default": "LRBT",
+                "enum": [
+                  "BT",
+                  "BTLR",
+                  "BTRL",
+                  "LR",
+                  "LRBT",
+                  "LRTB",
+                  "RL",
+                  "RLBT",
+                  "RLTB",
+                  "TB",
+                  "TBLR",
+                  "TBRL"
+                ],
+                "type": "string"
+              },
+              "align": {
+                "description": "Where the run of children sits within the space left over after sizing.\nRead by `fillX`/`fillY` levels; ignored when packing.\n\nWhere a run of containers sits within the leftover space of its parent, for\n`fillX` and `fillY` layouts. Packing layouts ignore it.\n\nThe two-letter codes set both axes at once — horizontal `L`/`C`/`R` then\nvertical `T`/`M`/`B` — so a single value like `LB` (left, bottom) reads\ncorrectly whether the level fills X or Y. The word forms set one axis:\n`left`/`center`/`right` are read by `fillX`, `top`/`middle`/`bottom` by\n`fillY`.",
+                "default": "LB",
+                "enum": [
+                  "CB",
+                  "CM",
+                  "CT",
+                  "LB",
+                  "LM",
+                  "LT",
+                  "RB",
+                  "RM",
+                  "RT",
+                  "bottom",
+                  "center",
+                  "left",
+                  "middle",
+                  "right",
+                  "top"
+                ],
+                "type": "string"
+              },
+              "containers": {
+                "description": "Internal. The containers this level produced, recorded by the engine at\nrender time. Do not set it in a spec.",
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Container"
+                }
+              },
+              "sort": {
+                "description": "Ordering of the children within a container. Read only by `flatten`\nsubgroups — on other subgroup types the order comes from the data\n(`groupby`, first-seen) or from the bin edges (`bin`).\n\nThe engine fills in a default sort on every layout that omits one, using\nthe key `survived` — a legacy default from the Titanic examples. On a\n`flatten` level over data without that field, the ordering is arbitrary\nbut stable, so set `sort` explicitly if the order matters.",
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "description": "The data field to order by.",
+                    "type": "string"
+                  },
+                  "type": {
+                    "description": "How to compare values of `key`: `numerical` coerces with `Number` before\ncomparing, anything else compares them as they are.",
+                    "enum": [
+                      "categorical",
+                      "numerical"
+                    ],
+                    "type": "string"
+                  },
+                  "direction": {
+                    "description": "Sort order. Any value other than `ascending` is treated as descending.",
+                    "default": "ascending",
+                    "enum": [
+                      "ascending",
+                      "descending"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            }
           }
         },
         "mark": {
@@ -290,9 +725,21 @@
                   "const": "categorical"
                 },
                 "scheme": {
-                  "$ref": "#/definitions/Schemes",
-                  "description": "The categorical palette used for `color.key`.",
-                  "default": "schemeCategory10"
+                  "description": "The categorical palette used for `color.key`.\n\nA categorical color palette, named the way d3-scale-chromatic names them.\n\nThe vega backend translates these to its own scheme names, so the same value\nworks on both backends.\n\n- `schemeCategory10` — 10 colors, the general-purpose default\n- `schemeTableau10` — 10 colors, Tableau's palette\n- `schemeAccent`, `schemeDark2`, `schemeSet1`, `schemeSet2`, `schemeSet3` —\n  8-12 saturated colors, good for marks on a light background\n- `schemePaired` — 12 colors in light/dark pairs, for nested categories\n- `schemePastel1`, `schemePastel2` — muted, good for large filled areas",
+                  "default": "schemeCategory10",
+                  "enum": [
+                    "schemeAccent",
+                    "schemeCategory10",
+                    "schemeDark2",
+                    "schemePaired",
+                    "schemePastel1",
+                    "schemePastel2",
+                    "schemeSet1",
+                    "schemeSet2",
+                    "schemeSet3",
+                    "schemeTableau10"
+                  ],
+                  "type": "string"
                 },
                 "isShared": {
                   "description": "Reserved. Read by neither backend today; the color scale is always built\nacross the whole chart.",
@@ -310,8 +757,14 @@
                   "type": "boolean"
                 },
                 "type": {
-                  "$ref": "#/definitions/SizePolicies",
-                  "description": "The sizing rule. Use `max`, which inscribes the circle in its container\n(radius = half the container's shorter side). The other values are\nunimplemented and render a radius of 0, i.e. invisible marks.",
+                  "description": "The sizing rule. Use `max`, which inscribes the circle in its container\n(radius = half the container's shorter side). The other values are\nunimplemented and render a radius of 0, i.e. invisible marks.\n\nHow big a unit mark is drawn inside the container the layout gave it.\n\nOnly `max` is implemented: it inscribes the mark in its container. The other\nvalues fall through to a radius of 0, which draws nothing — they are\nplaceholders for size policies the paper describes but this library does not\nimplement yet. Use `max` unless you want the marks hidden.",
+                  "enum": [
+                    "count",
+                    "max",
+                    "sum",
+                    "uniform"
+                  ],
+                  "type": "string",
                   "default": "max"
                 }
               }
@@ -330,20 +783,144 @@
               "type": "string"
             },
             "emoji": {
-              "$ref": "#/definitions/MarkContent",
-              "description": "The glyph a `shape: \"emoji\"` mark draws — `\"🐧\"` for the same one\neverywhere, or `{\"key\": \"species\", \"range\": [...]}` for one per category.\n\nVega backend only."
+              "description": "The glyph a `shape: \"emoji\"` mark draws — `\"🐧\"` for the same one\neverywhere, or `{\"key\": \"species\", \"range\": [...]}` for one per category.\n\nVega backend only.\n\nWhat a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "description": "The data field to read.",
+                      "type": "string"
+                    },
+                    "domain": {
+                      "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "range": {
+                      "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "default": {
+                      "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
             },
             "text": {
-              "$ref": "#/definitions/MarkContent",
-              "description": "The string a `shape: \"text\"` mark draws. Usually `{\"key\": \"name\"}`, i.e.\neach unit labelled with its own value of a field.\n\nText is set at whatever size keeps it inside its container, which is a\nper-string, per-container decision — so turn on `mark.size.isShared` to\nhave every string set at one size, the one that fits everywhere.\n\nVega backend only."
+              "description": "The string a `shape: \"text\"` mark draws. Usually `{\"key\": \"name\"}`, i.e.\neach unit labelled with its own value of a field.\n\nText is set at whatever size keeps it inside its container, which is a\nper-string, per-container decision — so turn on `mark.size.isShared` to\nhave every string set at one size, the one that fits everywhere.\n\nVega backend only.\n\nWhat a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "description": "The data field to read.",
+                      "type": "string"
+                    },
+                    "domain": {
+                      "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "range": {
+                      "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "default": {
+                      "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
             },
             "path": {
-              "$ref": "#/definitions/MarkContent",
-              "description": "The outline a `shape: \"path\"` mark draws, as an SVG path string.\n\nThe path is read in a square box running from (-1, -1) to (1, 1) with the\norigin at the mark's center, and scaled so that box is the container's\ninscribed square. `\"M0,-1L1,1L-1,1Z\"` is a triangle filling the container.\nTakes `mark.color` like a circle does.\n\nVega backend only."
+              "description": "The outline a `shape: \"path\"` mark draws, as an SVG path string.\n\nThe path is read in a square box running from (-1, -1) to (1, 1) with the\norigin at the mark's center, and scaled so that box is the container's\ninscribed square. `\"M0,-1L1,1L-1,1Z\"` is a triangle filling the container.\nTakes `mark.color` like a circle does.\n\nVega backend only.\n\nWhat a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "description": "The data field to read.",
+                      "type": "string"
+                    },
+                    "domain": {
+                      "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "range": {
+                      "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "default": {
+                      "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
             },
             "image": {
-              "$ref": "#/definitions/MarkContent",
-              "description": "The picture a `shape: \"image\"` mark draws, as a url or a data uri. The\nimage is fit inside the container's inscribed square with its aspect ratio\nkept, so a non-square picture is letterboxed rather than stretched.\n\nVega backend only."
+              "description": "The picture a `shape: \"image\"` mark draws, as a url or a data uri. The\nimage is fit inside the container's inscribed square with its aspect ratio\nkept, so a non-square picture is letterboxed rather than stretched.\n\nVega backend only.\n\nWhat a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "description": "The data field to read.",
+                      "type": "string"
+                    },
+                    "domain": {
+                      "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "range": {
+                      "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "default": {
+                      "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
             },
             "fontSize": {
               "description": "Type size in pixels for `emoji` and `text` marks.\n\nLeft unset, an emoji is drawn one container across and text is shrunk to\nwhatever size keeps the string inside its container. Set it and the marks\nare drawn at that size whatever their container, which is what makes a\nchart of text legible at the cost of letting long strings overlap.\n\nVega backend only.",
@@ -360,7 +937,43 @@
           "default": false,
           "anyOf": [
             {
-              "$ref": "#/definitions/Labels"
+              "description": "Text drawn next to each layout container, reading the container's own label:\nthe group value for a `groupby` subgroup, the `low-high` range for a `bin`\none. This is how a unit chart gets its axis-like annotations — the grammar\nhas no axes, only labelled containers.\n\nVega backend only. The old (d3) backend ignores it.",
+              "type": "object",
+              "properties": {
+                "orient": {
+                  "description": "Which side of the container box the text sits on. `left`/`right` place it\noutside the vertical edges, `top`/`bottom` outside the horizontal ones.",
+                  "default": "bottom",
+                  "enum": [
+                    "bottom",
+                    "left",
+                    "right",
+                    "top"
+                  ],
+                  "type": "string"
+                },
+                "layouts": {
+                  "description": "Restrict labelling to specific layout levels, by `layout.name`. A layout\nwith no `name` can never be selected this way.\n\nLeft unset, every layout that actually names its groups gets labelled,\nwhich means every `groupby` and every `bin` subgroup. `flatten` levels are\nskipped by default because their labels are row indices.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "offset": {
+                  "description": "Gap in pixels between the container edge and the text.",
+                  "default": 4,
+                  "type": "number"
+                },
+                "fontSize": {
+                  "description": "Type size of the label text, in pixels.",
+                  "default": 10,
+                  "type": "number"
+                },
+                "color": {
+                  "description": "CSS color for the label text.",
+                  "default": "#333333",
+                  "type": "string"
+                }
+              }
             },
             {
               "type": "boolean"
@@ -372,7 +985,30 @@
           "default": false,
           "anyOf": [
             {
-              "$ref": "#/definitions/Legend"
+              "description": "A color legend for the key the marks are colored by. Swatches take the shape\nof the marks they stand for.\n\nRequires `mark.color.key` — with nothing to explain, no legend is drawn.\n\nVega backend only. The old (d3) backend ignores it.",
+              "type": "object",
+              "properties": {
+                "orient": {
+                  "description": "Where the legend sits relative to the plotting area. The corner values\nplace it inside the chart; the side values place it outside, growing the\nrendered svg rather than shrinking the chart.",
+                  "default": "right",
+                  "enum": [
+                    "bottom",
+                    "bottom-left",
+                    "bottom-right",
+                    "left",
+                    "right",
+                    "top",
+                    "top-left",
+                    "top-right"
+                  ],
+                  "type": "string"
+                },
+                "title": {
+                  "description": "Heading above the swatches.",
+                  "default": "the value of `mark.color.key`",
+                  "type": "string"
+                }
+              }
             },
             {
               "type": "boolean"
@@ -390,8 +1026,26 @@
           "type": "number"
         },
         "padding": {
-          "$ref": "#/definitions/Padding",
-          "description": "Inset between the edge of the canvas and the first layout's containers.\nThis is the chart's outer gutter — where axis labels would go if the\ngrammar had axes.",
+          "description": "Inset between the edge of the canvas and the first layout's containers.\nThis is the chart's outer gutter — where axis labels would go if the\ngrammar had axes.\n\nSpace reserved *inside* a box, in pixels. Content laid out within the box is\ninset by these amounts on each side.\n\nContrast with a layout's `margin`, which is space reserved *outside* each\ncontainer it produces.",
+          "type": "object",
+          "properties": {
+            "top": {
+              "description": "Pixels of inset along the top edge.",
+              "type": "number"
+            },
+            "left": {
+              "description": "Pixels of inset along the left edge.",
+              "type": "number"
+            },
+            "right": {
+              "description": "Pixels of inset along the right edge.",
+              "type": "number"
+            },
+            "bottom": {
+              "description": "Pixels of inset along the bottom edge.",
+              "type": "number"
+            }
+          },
           "default": {
             "top": 0,
             "left": 0,
@@ -406,7 +1060,7 @@
       }
     },
     "Direction": {
-      "description": "The order in which a layout fills the space it was given.\n\nTwo-letter forms name a single axis and are for `fillX`/`fillY` layouts:\n`LR` left-to-right, `RL` right-to-left, `TB` top-to-bottom, `BT`\nbottom-to-top. `fillX` reads the horizontal sense, `fillY` the vertical one.\n\nFour-letter forms name a fill axis and then a wrap axis, and are for packing\nlayouts (`square`, `parent`, `maxfill`). `LRTB` runs units left-to-right\nalong a row and stacks rows top-to-bottom; `BTLR` runs them bottom-to-top up\na column and advances columns left-to-right. A four-letter form also works\nfor a fill layout, which just reads whichever axis it needs.\n\nOnly `LRTB`, `LRBT`, `TBLR` and `BTLR` are implemented for packing. The\nright-to-left packing orders (`RLTB`, `RLBT`, `TBRL`, `BTRL`) are accepted by\nthe grammar but unimplemented, and produce unpositioned containers.",
+      "description": "The order in which a layout fills the space it was given.\n\nTwo-letter forms name a single axis and are for `fillX`/`fillY` layouts:\n`LR` left-to-right, `RL` right-to-left, `TB` top-to-bottom, `BT`\nbottom-to-top. `fillX` reads the horizontal sense, `fillY` the vertical one.\n\nFour-letter forms name a fill axis and then a wrap axis, and are for packing\nlayouts (`square`, `parent`, `maxfill`). `LRTB` runs units left-to-right\nalong a row and stacks rows top-to-bottom; `BTLR` runs them bottom-to-top up\na column and advances columns left-to-right. A four-letter form also works\nfor a fill layout, which just reads whichever axis it needs.\n\nAll eight four-letter orders are implemented, for grid packing and for\nweighted packing alike.",
       "default": "LRBT",
       "enum": [
         "BT",
@@ -458,7 +1112,7 @@
       "type": "string"
     },
     "aspectRatio": {
-      "description": "How a layout turns its parent's space into boxes for its children — the\nchoice that separates a bar chart from a treemap.\n\n- `fillX` — lay the children out in a row, each spanning the parent's full\n  height and taking a share of its width. Widths come from `size`, order\n  from `direction`, placement from `align`. This is the bar-chart /\n  column-of-groups case.\n- `fillY` — the same, transposed: a column of children, each spanning the\n  full width, sharing the height.\n- `maxfill` — pack the children into a grid chosen to make the boxes as\n  large as possible. With a `uniform` size that is a plain grid; with a\n  `sum`/`count` size it becomes a squarified treemap (see `Layout.size`).\n  The usual choice for a final `flatten` level.\n- `square` — pack into square boxes, centered in the parent.\n- `parent` — pack into boxes with the parent's own aspect ratio.\n- `custom` — accepted by the grammar but unimplemented; there is no field to\n  supply the custom ratio, and the resulting boxes are unsized.",
+      "description": "How a layout turns its parent's space into boxes for its children — the\nchoice that separates a bar chart from a treemap.\n\n- `fillX` — lay the children out in a row, each spanning the parent's full\n  height and taking a share of its width. Widths come from `size`, order\n  from `direction`, placement from `align`. This is the bar-chart /\n  column-of-groups case.\n- `fillY` — the same, transposed: a column of children, each spanning the\n  full width, sharing the height.\n- `maxfill` — pack the children into a grid chosen to make the boxes as\n  large as possible. With a `uniform` size that is a plain grid; with a\n  `sum`/`count` size it becomes a squarified treemap (see `Layout.size`).\n  The usual choice for a final `flatten` level.\n- `square` — pack into square boxes.\n- `parent` — pack into boxes with the parent's own aspect ratio.\n- `custom` — pack into boxes of the ratio `custom_aspect_ratio` gives.\n\nThe last three lay out a grid of equal boxes under a `uniform` size, and a\nshelf packing of boxes whose *area* carries the value under a `sum`/`count`\none — big box, big value, with the level's aspect ratio kept and some space\nleft at the end of each shelf. `maxfill`'s treemap is the other trade: no\nwasted space, no fixed aspect ratio.",
       "default": "maxfill",
       "enum": [
         "custom",
@@ -479,8 +1133,15 @@
           "type": "object",
           "properties": {
             "type": {
-              "$ref": "#/definitions/layoutTypes",
-              "description": "The split rule.\n\n- `groupby` — one child per distinct value of `key`. The usual\n  categorical split.\n- `bin` — one child per interval of the numeric field `key`, cut into\n  `numBin` equal-width bins over the data's extent. Rows with an empty\n  value collect in a leading bin labelled `-`. Makes histograms.\n- `flatten` — one child per row. Normally the last level, so that each\n  row gets a box for its mark. Honors `sort`.\n- `passthrough` — one child holding all the rows, unchanged. Used to\n  insert an extra level of space policy (a nested `fillY` inside a\n  `fillX`, say) without splitting the data further."
+              "description": "The split rule.\n\n- `groupby` — one child per distinct value of `key`. The usual\n  categorical split.\n- `bin` — one child per interval of the numeric field `key`, cut into\n  `numBin` equal-width bins over the data's extent. Rows with an empty\n  value collect in a leading bin labelled `-`. Makes histograms.\n- `flatten` — one child per row. Normally the last level, so that each\n  row gets a box for its mark. Honors `sort`.\n- `passthrough` — one child holding all the rows, unchanged. Used to\n  insert an extra level of space policy (a nested `fillY` inside a\n  `fillX`, say) without splitting the data further.\n\nThe union of every value accepted by `Layout.type` and `Layout.subgroup.type`\n— the two fields take disjoint halves of it.\n\n`Layout.type` takes only `gridxy`. `Layout.subgroup.type` takes `groupby`,\n`bin`, `flatten` or `passthrough`. See those fields for what each does.",
+              "enum": [
+                "bin",
+                "flatten",
+                "gridxy",
+                "groupby",
+                "passthrough"
+              ],
+              "type": "string"
             },
             "key": {
               "description": "The data field to split on. Required by `groupby` and `bin`; ignored by\n`flatten` and `passthrough`.",
@@ -502,9 +1163,21 @@
           }
         },
         "aspect_ratio": {
-          "$ref": "#/definitions/aspectRatio",
-          "description": "How this level divides space among the children `subgroup` produced.",
-          "default": "maxfill"
+          "description": "How this level divides space among the children `subgroup` produced.\n\nHow a layout turns its parent's space into boxes for its children — the\nchoice that separates a bar chart from a treemap.\n\n- `fillX` — lay the children out in a row, each spanning the parent's full\n  height and taking a share of its width. Widths come from `size`, order\n  from `direction`, placement from `align`. This is the bar-chart /\n  column-of-groups case.\n- `fillY` — the same, transposed: a column of children, each spanning the\n  full width, sharing the height.\n- `maxfill` — pack the children into a grid chosen to make the boxes as\n  large as possible. With a `uniform` size that is a plain grid; with a\n  `sum`/`count` size it becomes a squarified treemap (see `Layout.size`).\n  The usual choice for a final `flatten` level.\n- `square` — pack into square boxes.\n- `parent` — pack into boxes with the parent's own aspect ratio.\n- `custom` — pack into boxes of the ratio `custom_aspect_ratio` gives.\n\nThe last three lay out a grid of equal boxes under a `uniform` size, and a\nshelf packing of boxes whose *area* carries the value under a `sum`/`count`\none — big box, big value, with the level's aspect ratio kept and some space\nleft at the end of each shelf. `maxfill`'s treemap is the other trade: no\nwasted space, no fixed aspect ratio.",
+          "default": "maxfill",
+          "enum": [
+            "custom",
+            "fillX",
+            "fillY",
+            "maxfill",
+            "parent",
+            "square"
+          ],
+          "type": "string"
+        },
+        "custom_aspect_ratio": {
+          "description": "The `width / height` this level draws its boxes at, for\n`aspect_ratio: \"custom\"`. `1` is a square, `2` twice as wide as it is tall.\n\nRequired by `custom` and ignored by every other aspect ratio — a `custom`\nlevel without it is an error rather than a chart of unsized boxes.",
+          "type": "number"
         },
         "parent": {
           "description": "Internal. The previous layout in the pipeline, linked up by the engine at\nrender time. Do not set it in a spec.",
@@ -538,7 +1211,7 @@
               "type": "boolean"
             },
             "type": {
-              "description": "What each child's share is proportional to.\n\n- `uniform` — equal shares, regardless of how many rows a child holds\n- `count` — the number of rows in the child\n- `sum` — the sum of `key` over the child's rows\n\nWith `aspect_ratio: \"maxfill\"`, anything other than `uniform` switches\nthe level to a squarified treemap, which reads `key` off the *first* row\nof each child — so treemaps want a `flatten` level, where each child\nholds exactly one row.",
+              "description": "What each child's share is proportional to.\n\n- `uniform` — equal shares, regardless of how many rows a child holds\n- `count` — the number of rows in the child\n- `sum` — the sum of `key` over the child's rows\n\nA `fillX`/`fillY` level turns the share into a length, so this is what\nmakes a bar proportional. A packing level turns it into an area:\n`maxfill` squarifies the children into a treemap, and `square`, `parent`\nand `custom` shelf-pack boxes of that area at their own aspect ratio.",
               "default": "uniform",
               "enum": [
                 "count",
@@ -548,7 +1221,7 @@
               "type": "string"
             },
             "key": {
-              "description": "The numeric field summed by `type: \"sum\"` (and read by the `maxfill`\ntreemap). Ignored by the other size types.",
+              "description": "The numeric field summed by `type: \"sum\"`. Ignored by the other size\ntypes.",
               "type": "string"
             }
           }
@@ -587,8 +1260,15 @@
           }
         },
         "type": {
-          "$ref": "#/definitions/layoutTypes",
-          "description": "The layout algorithm. Only `gridxy` is implemented — it covers every\n`aspect_ratio` above. Any other value leaves this level's containers\nunsized.",
+          "description": "The layout algorithm. Only `gridxy` is implemented — it covers every\n`aspect_ratio` above. Any other value leaves this level's containers\nunsized.\n\nThe union of every value accepted by `Layout.type` and `Layout.subgroup.type`\n— the two fields take disjoint halves of it.\n\n`Layout.type` takes only `gridxy`. `Layout.subgroup.type` takes `groupby`,\n`bin`, `flatten` or `passthrough`. See those fields for what each does.",
+          "enum": [
+            "bin",
+            "flatten",
+            "gridxy",
+            "groupby",
+            "passthrough"
+          ],
+          "type": "string",
           "default": "gridxy"
         },
         "sizeSharingGroup": {
@@ -599,8 +1279,26 @@
           }
         },
         "padding": {
-          "$ref": "#/definitions/Padding",
-          "description": "Inset applied inside each container this level produces, i.e. the gutter\nthe *next* level lays out within. Use this to keep nested containers from\ntouching their parent's edge.\n\nWhen a spec has more than one layout, the first level's padding is\noverwritten with 5 on every side.",
+          "description": "Inset applied inside each container this level produces, i.e. the gutter\nthe *next* level lays out within. Use this to keep nested containers from\ntouching their parent's edge.\n\nWhen a spec has more than one layout, the first level's padding is\noverwritten with 5 on every side.\n\nSpace reserved *inside* a box, in pixels. Content laid out within the box is\ninset by these amounts on each side.\n\nContrast with a layout's `margin`, which is space reserved *outside* each\ncontainer it produces.",
+          "type": "object",
+          "properties": {
+            "top": {
+              "description": "Pixels of inset along the top edge.",
+              "type": "number"
+            },
+            "left": {
+              "description": "Pixels of inset along the left edge.",
+              "type": "number"
+            },
+            "right": {
+              "description": "Pixels of inset along the right edge.",
+              "type": "number"
+            },
+            "bottom": {
+              "description": "Pixels of inset along the bottom edge.",
+              "type": "number"
+            }
+          },
           "default": {
             "top": 0,
             "left": 0,
@@ -609,8 +1307,26 @@
           }
         },
         "margin": {
-          "$ref": "#/definitions/Padding",
-          "description": "Gap around each container this level produces, taken out of the space\nbeing divided — so it separates siblings from each other rather than\ninsetting their contents. This is the gap between bars, between mosaic\ntiles, between small-multiple panels.\n\nWhen a spec has more than one layout, the first level's margin is\noverwritten with 5 on every side, and any `flatten` level's margin is\noverwritten with 0.",
+          "description": "Gap around each container this level produces, taken out of the space\nbeing divided — so it separates siblings from each other rather than\ninsetting their contents. This is the gap between bars, between mosaic\ntiles, between small-multiple panels.\n\nWhen a spec has more than one layout, the first level's margin is\noverwritten with 5 on every side, and any `flatten` level's margin is\noverwritten with 0.\n\nSpace reserved *inside* a box, in pixels. Content laid out within the box is\ninset by these amounts on each side.\n\nContrast with a layout's `margin`, which is space reserved *outside* each\ncontainer it produces.",
+          "type": "object",
+          "properties": {
+            "top": {
+              "description": "Pixels of inset along the top edge.",
+              "type": "number"
+            },
+            "left": {
+              "description": "Pixels of inset along the left edge.",
+              "type": "number"
+            },
+            "right": {
+              "description": "Pixels of inset along the right edge.",
+              "type": "number"
+            },
+            "bottom": {
+              "description": "Pixels of inset along the bottom edge.",
+              "type": "number"
+            }
+          },
           "default": {
             "top": 0,
             "left": 0,
@@ -619,14 +1335,45 @@
           }
         },
         "direction": {
-          "$ref": "#/definitions/Direction",
-          "description": "The order in which children are placed into the space this level divides.",
-          "default": "LRBT"
+          "description": "The order in which children are placed into the space this level divides.\n\nThe order in which a layout fills the space it was given.\n\nTwo-letter forms name a single axis and are for `fillX`/`fillY` layouts:\n`LR` left-to-right, `RL` right-to-left, `TB` top-to-bottom, `BT`\nbottom-to-top. `fillX` reads the horizontal sense, `fillY` the vertical one.\n\nFour-letter forms name a fill axis and then a wrap axis, and are for packing\nlayouts (`square`, `parent`, `maxfill`). `LRTB` runs units left-to-right\nalong a row and stacks rows top-to-bottom; `BTLR` runs them bottom-to-top up\na column and advances columns left-to-right. A four-letter form also works\nfor a fill layout, which just reads whichever axis it needs.\n\nAll eight four-letter orders are implemented, for grid packing and for\nweighted packing alike.",
+          "default": "LRBT",
+          "enum": [
+            "BT",
+            "BTLR",
+            "BTRL",
+            "LR",
+            "LRBT",
+            "LRTB",
+            "RL",
+            "RLBT",
+            "RLTB",
+            "TB",
+            "TBLR",
+            "TBRL"
+          ],
+          "type": "string"
         },
         "align": {
-          "$ref": "#/definitions/Align",
-          "description": "Where the run of children sits within the space left over after sizing.\nRead by `fillX`/`fillY` levels; ignored when packing.",
-          "default": "LB"
+          "description": "Where the run of children sits within the space left over after sizing.\nRead by `fillX`/`fillY` levels; ignored when packing.\n\nWhere a run of containers sits within the leftover space of its parent, for\n`fillX` and `fillY` layouts. Packing layouts ignore it.\n\nThe two-letter codes set both axes at once — horizontal `L`/`C`/`R` then\nvertical `T`/`M`/`B` — so a single value like `LB` (left, bottom) reads\ncorrectly whether the level fills X or Y. The word forms set one axis:\n`left`/`center`/`right` are read by `fillX`, `top`/`middle`/`bottom` by\n`fillY`.",
+          "default": "LB",
+          "enum": [
+            "CB",
+            "CM",
+            "CT",
+            "LB",
+            "LM",
+            "LT",
+            "RB",
+            "RM",
+            "RT",
+            "bottom",
+            "center",
+            "left",
+            "middle",
+            "right",
+            "top"
+          ],
+          "type": "string"
         },
         "containers": {
           "description": "Internal. The containers this level produced, recorded by the engine at\nrender time. Do not set it in a spec.",
@@ -676,7 +1423,12 @@
       "description": "One row of the input data: a flat object of field name to value. Fields\nloaded from CSV arrive as strings.",
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/definitions/DataValue"
+        "description": "A single field value on a data row. CSV sources produce only strings; JSON\nsources keep whatever scalar they were written with.",
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
       }
     },
     "VisualSpace": {

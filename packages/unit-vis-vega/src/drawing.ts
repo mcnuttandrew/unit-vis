@@ -19,7 +19,13 @@ import type {
   MarkContent,
   Spec,
 } from "@unit-vis/core";
-import { ROWS_BY_ID, buildLayoutData, levelName } from "./layout.js";
+import {
+  ROWS_BY_ID,
+  buildLayoutData,
+  isTreemap,
+  isWeightedPack,
+  levelName,
+} from "./layout.js";
 
 /**
  * Everything but the rows is computed inside vega.
@@ -799,19 +805,16 @@ export function buildVegaSpec(spec: Spec, rows: DataRow[]): VegaSpec {
 /**
  * Whether `buildVegaSpec` will emit a spec a bare vega runtime can run.
  *
- * A weighted `maxfill` level is a squarified treemap, which is the one part of
- * the grammar that needs a transform vega does not ship -- see
- * `treemap-transform.ts`. Everything else compiles to stock transforms, so the
- * emitted spec can be handed to the Vega Editor, `vega-embed`, or the vega CLI
- * as it stands.
+ * The two weighted packing levels are the parts of the grammar that need a
+ * transform vega does not ship: `maxfill` squarifies into a treemap, and
+ * `square`/`parent`/`custom` shelve boxes at a scale searched over their own
+ * placement -- see `treemap-transform.ts` and `shelf-transform.ts`. Everything
+ * else compiles to stock transforms, so the emitted spec can be handed to the
+ * Vega Editor, `vega-embed`, or the vega CLI as it stands.
  */
 export function isPortable(spec: Spec): boolean {
   return !spec.layouts.some(
-    (layout) =>
-      layout.aspect_ratio === "maxfill" &&
-      Boolean(layout.size) &&
-      Boolean(layout.size!.type) &&
-      layout.size!.type !== "uniform",
+    (layout) => isTreemap(layout) || isWeightedPack(layout),
   );
 }
 
