@@ -18,10 +18,10 @@ import {
   renderVegaHeadless,
 } from './harness/render';
 import {modelFromOldSvg, modelFromVegaSvg} from './harness/svg-model';
-import {ALL_SPECS} from './harness/specs';
+import {PARITY_SPECS} from './harness/specs';
 
 const SAMPLE_SIZE = 120;
-const SPECS = ALL_SPECS.filter(s => !(s.name in KNOWN_LAYOUT_FAILURES));
+const SPECS = PARITY_SPECS.filter(s => !(s.name in KNOWN_LAYOUT_FAILURES));
 const BACKENDS = ['old', 'vega'] as const;
 
 interface Quality {

@@ -37,6 +37,7 @@ export type {
   Layout,
   Legend,
   Mark,
+  MarkContent,
   Padding,
   Schemes,
   SizePolicies,

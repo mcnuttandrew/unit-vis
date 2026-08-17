@@ -1,7 +1,14 @@
 # Backend comparison harness
 
-Renders every spec in `apps/playground/src/specs` through both drawing backends
+Renders every spec in `specs/` at the top of the repository through both backends
 inside jsdom and compares the SVG they produce.
+
+`harness/specs.ts` splits that corpus in two. `PARITY_SPECS` is the specs
+written in the grammar both backends implement, and is what everything
+comparative runs on. `VEGA_ONLY_SPECS` is the rest — specs asking for a mark
+shape only the vega backend draws (`emoji`, `text`, `path`, `image`), which the
+d3 backend answers with circles, leaving a comparison nothing to hold to.
+`mark-shapes.test.ts` covers those on the one backend that draws them.
 
 ```
 yarn test                 # run the suite
@@ -67,6 +74,12 @@ in `buildVegaSpec`. **Renaming those marks will break the harness** — update
 - `color-scheme.test.ts` — `mark.color.scheme`, which no bundled spec sets. Specs name schemes the d3 way (`schemeDark2`) and vega's registry uses
   the bare name, so `buildVegaSpec` translates; this pins the palettes both
   backends land on, including the one case where the two registries disagree.
+- `mark-shapes.test.ts` — the `emoji`, `text`, `path` and `image` mark shapes,
+  which only the vega backend draws: what each one draws (literal, field, or
+  mapped field), that all four sit in the box a circle would have taken, that
+  `mark.size` reaches them, and that flipping the `markShape` signal reshapes a
+  live view. It also holds the bundled specs that use them to drawing what they
+  claim to, since the two suites above cannot see them.
 
 ## Known differences
 

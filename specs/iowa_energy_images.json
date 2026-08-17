@@ -1,0 +1,45 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title"  : "Iowa's electricity, a year of generation per icon",
+  "data"   : {"url": "data/iowa-electricity.csv"},
+  "width"  : 720,
+  "height" : 420,
+  "padding": {"top": 10, "left": 10, "bottom": 20, "right": 10},
+  "layouts": [
+    {
+      "name"        : "source",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "groupby", "key": "source", "isShared": false},
+      "aspect_ratio": "fillX",
+      "size"        : {"type": "count", "isShared": true},
+      "direction"   : "LRBT",
+      "align"       : "LB",
+      "margin"      : {"top": 5, "left": 5, "bottom": 5, "right": 5},
+      "padding"     : {"top": 5, "left": 5, "bottom": 5, "right": 5},
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.3},
+      "sort"        : {"key": "source", "type": "categorical", "direction": "ascending"}
+    },
+    {
+      "name"        : "years",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "flatten"},
+      "aspect_ratio": "maxfill",
+      "size"        : {"type": "uniform", "isShared": true},
+      "direction"   : "LRTB",
+      "align"       : "LB",
+      "sort"        : {"key": "year", "type": "categorical", "direction": "ascending"}
+    }
+  ],
+  "mark"   : {
+    "shape": "image",
+    "image": {
+      "key"   : "source",
+      "domain": ["Fossil Fuels", "Nuclear Energy", "Renewables"],
+      "range" : ["data/icons/fossil-fuels.svg", "data/icons/nuclear.svg", "data/icons/renewables.svg"]
+    },
+    "color": {"key": "source", "type": "categorical"},
+    "size" : {"type": "max", "isShared": true}
+  },
+  "labels" : true,
+  "legend" : false
+}

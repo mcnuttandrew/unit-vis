@@ -1,5 +1,5 @@
 /**
- * Converts the example specs in `src/specs` from TypeScript modules to plain
+ * Converts the example specs in `specs/` from TypeScript modules to plain
  * JSON documents, so they can be read, diffed, and edited as data rather than
  * as code.
  *
@@ -23,11 +23,11 @@ const dryRun = args.includes('--dry-run');
 const keepTs = args.includes('--keep-ts');
 
 const repoRoot = resolve(fileURLToPath(import.meta.url), '../..');
-const specsDir = join(repoRoot, 'apps/playground/src/specs');
+const specsDir = join(repoRoot, 'specs');
 
 // Eager rather than lazy: the glob is resolved at transform time, which is what
 // lets a script running under vite-node import TypeScript spec modules at all.
-const modules = import.meta.glob<{default?: Spec}>('../apps/playground/src/specs/*.ts', {eager: true});
+const modules = import.meta.glob<{default?: Spec}>('../specs/*.ts', {eager: true});
 
 /**
  * `$schema` is written last in the TS sources, where it reads as a trailing

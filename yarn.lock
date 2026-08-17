@@ -2640,6 +2640,13 @@ vega-dataflow@^5.7.8, vega-dataflow@~5.7.8:
     vega-loader "^4.5.4"
     vega-util "^1.17.4"
 
+vega-datasets@^3.2.1:
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/vega-datasets/-/vega-datasets-3.2.1.tgz#0357a23aa33e9e2cfba939c9efddbb757bf61888"
+  integrity sha512-lTSwZA6yq6qSU2YZm+6bqILiIvTPPxn4itir7jPGFmHIdPvUfQ9pCzzcrklYywMJgLUbaIeSkZQdiJd6wBxPug==
+  dependencies:
+    d3-dsv "^3.0.1"
+
 vega-encode@~4.10.3:
   version "4.10.3"
   resolved "https://registry.yarnpkg.com/vega-encode/-/vega-encode-4.10.3.tgz#a194561f167788a295a4dfff57e846826518ee64"

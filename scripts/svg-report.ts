@@ -23,7 +23,9 @@ globals.document = dom.window.document;
 const {buildSceneForSpec, renderOld, renderVegaHeadless, REPO_ROOT} = await import('../test/harness/render');
 const {modelFromOldSvg, modelFromVegaSvg} = await import('../test/harness/svg-model');
 const {compare, formatComparison, formatQuality, inspect} = await import('../test/harness/compare');
-const {ALL_SPECS} = await import('../test/harness/specs');
+// The report is a backend comparison, so it runs on the specs both backends
+// draw -- see `PARITY_SPECS`.
+const {PARITY_SPECS} = await import('../test/harness/specs');
 
 const args = process.argv.slice(2);
 const full = args.includes('--full');
@@ -44,7 +46,7 @@ const lines: string[] = [
 const details: string[] = [];
 const failures: string[] = [];
 
-for (const {name, spec} of ALL_SPECS) {
+for (const {name, spec} of PARITY_SPECS) {
   try {
     const scene = buildSceneForSpec(spec, sampleSize);
     const oldSvg = renderOld(scene);

@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import fs from "fs";
 import path from "path";
 
-const SRC_DIR = path.resolve(__dirname, "../apps/playground/src/specs");
+const SRC_DIR = path.resolve(__dirname, "../specs");
 
 async function main() {
   const specNames = fs
