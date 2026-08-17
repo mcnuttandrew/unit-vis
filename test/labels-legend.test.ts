@@ -9,15 +9,16 @@
  * is that the ticks land on the groups they name -- an axis derived from a
  * layout is only worth anything if it agrees with the layout.
  */
-import {describe, expect, it} from 'vitest';
+import {beforeAll, describe, expect, it} from 'vitest';
 import * as vega from 'vega';
 import {buildVegaSpec} from 'unit-vis-vega';
-import {classifyPath} from './harness/path-geometry';
+import {BLUE_IMAGE, RED_IMAGE, installLoadedImage} from './harness/loaded-image';
+import {boundingBox, classifyPath, samplePath} from './harness/path-geometry';
 import {buildSceneForSpec, collectVegaLogs, renderOld, renderVegaHeadless} from './harness/render';
 import type {Scene} from './harness/render';
 import {modelFromVegaSvg, parseSvg, parseTransform} from './harness/svg-model';
 import {ALL_SPECS, withoutDecorations} from './harness/specs';
-import type {Labels, Legend, Spec} from '@unit-vis/core';
+import type {Labels, Legend, Mark, Spec} from '@unit-vis/core';
 
 /**
  * A groupby over species with a flatten under it: one level that names its
@@ -447,34 +448,187 @@ describe('legend', () => {
     expect(entries).not.toContain('species');
   });
 
-  /**
-   * The swatch stands for a mark, so it is shaped like one: vega's default
-   * circle for circle units, a square for rect units.
-   */
-  it('shapes the swatches like the marks they stand for', async () => {
-    const swatches = async (name: string): Promise<string[]> => {
-      const spec = {...(JSON.parse(JSON.stringify(ALL_SPECS.find(s => s.name === name)!.spec)) as Spec), legend: true};
-      const svg = await renderVegaHeadless(buildSceneForSpec(spec));
-      return Array.from(parseSvg(svg).querySelectorAll('g.role-legend-symbol path')).map(p =>
-        classifyPath(p.getAttribute('d') || ''),
-      );
-    };
-
-    const circles = await swatches(BASE);
-    expect(circles.length).toBeGreaterThan(0);
-    expect(new Set(circles)).toEqual(new Set(['circle']));
-
-    const rects = await swatches('penguins_mass_sum_by_island');
-    expect(rects.length).toBeGreaterThan(0);
-    expect(new Set(rects)).toEqual(new Set(['rect']));
-  });
-
   it('is dropped when the marks are not colored by anything', () => {
     const spec = specWith({legend: true});
     delete (spec.mark!.color as {key?: string}).key;
     const scene = buildSceneForSpec(spec);
     const vegaSpec = buildVegaSpec(scene.spec, scene.data) as Record<string, unknown>;
     expect(vegaSpec.legends).toBeUndefined();
+  });
+});
+
+/**
+ * A swatch is a claim about what the reader will find in the chart, so each of
+ * the six mark shapes has to get as much of itself into one as a vega legend
+ * allows. The base chart is colored by species, so a swatch stands for a
+ * species and the marks it stands for are the penguins of that species.
+ */
+describe('legend swatches', () => {
+  beforeAll(installLoadedImage);
+
+  /** Outlines in the (-1, -1) to (1, 1) box a `path` mark is read in. */
+  const TRIANGLE = 'M0,-1L1,1L-1,1Z';
+  const BAR = 'M-1,-0.5L1,-0.5L1,0.5L-1,0.5Z';
+  const DIAMOND = 'M0,-1L1,0L0,1L-1,0Z';
+
+  /** The base chart with its units drawn some other way, legend on. */
+  function markSpec(mark: Partial<Mark>): Spec {
+    const spec = specWith({legend: true});
+    return {...spec, mark: {...spec.mark, ...mark} as Mark};
+  }
+
+  /**
+   * One legend entry as the svg carries it. Symbols and labels are one mark
+   * each, drawn in entry order, so the two lists line up.
+   */
+  interface SwatchModel {
+    /** The swatch itself, or null where it was drawn invisible. */
+    path: string | null;
+    /** The color the scale gave the entry, which the symbol carries either way. */
+    fill: string | null;
+    label: string;
+    labelFill: string | null;
+    labelFont: string | null;
+  }
+
+  function swatchesFrom(svg: string): SwatchModel[] {
+    const root = parseSvg(svg);
+    const symbols = Array.from(root.querySelectorAll('g.role-legend-symbol path'));
+    const labels = Array.from(root.querySelectorAll('g.role-legend-label text'));
+    expect(symbols.length).toBe(SPECIES.length);
+    expect(labels.length).toBe(symbols.length);
+    return symbols.map((symbol, i) => ({
+      path: symbol.getAttribute('opacity') === '0' ? null : symbol.getAttribute('d'),
+      fill: symbol.getAttribute('fill'),
+      label: labels[i].textContent || '',
+      labelFill: labels[i].getAttribute('fill'),
+      labelFont: labels[i].getAttribute('font-family'),
+    }));
+  }
+
+  async function swatches(mark: Partial<Mark>): Promise<SwatchModel[]> {
+    return swatchesFrom(await renderVegaHeadless(buildSceneForSpec(markSpec(mark))));
+  }
+
+  /** The shape of a path, whatever size it was drawn at. */
+  function outline(d: string | null): string {
+    const points = samplePath(d || '');
+    const box = boundingBox(points)!;
+    return points
+      .map(p => `${((p.x - box.x) / box.width).toFixed(2)},${((p.y - box.y) / box.height).toFixed(2)}`)
+      .join(' ');
+  }
+
+  const kinds = (drawn: SwatchModel[]): Set<string> =>
+    new Set(drawn.map(swatch => classifyPath(swatch.path || '')));
+
+  it('gives circle units vega\'s circle and rect units a square', async () => {
+    expect(kinds(await swatches({shape: 'circle'}))).toEqual(new Set(['circle']));
+    expect(kinds(await swatches({shape: 'rect'}))).toEqual(new Set(['rect']));
+  });
+
+  it('draws the outline a path mark draws, one per entry', async () => {
+    const drawn = await swatches({
+      shape: 'path',
+      path: {key: 'species', domain: SPECIES.slice(0, 2), range: [TRIANGLE, BAR], default: DIAMOND},
+    });
+    expect(drawn.map(swatch => swatch.label)).toEqual(SPECIES);
+    // The third species is outside the domain, so its swatch is the outline its
+    // units are drawn with: the default.
+    expect(drawn.map(swatch => outline(swatch.path))).toEqual(
+      [TRIANGLE, BAR, DIAMOND].map(outline),
+    );
+  });
+
+  /**
+   * Legend symbols are symbol marks, which cannot draw text, so the glyph goes
+   * where the swatch would have been: at the head of the label, with the symbol
+   * hidden behind it.
+   */
+  it('writes the glyph an emoji mark draws in place of a swatch', async () => {
+    const drawn = await swatches({
+      shape: 'emoji',
+      emoji: {key: 'species', domain: SPECIES.slice(0, 2), range: ['🐧', '🐦'], default: '❓'},
+    });
+    expect(drawn.map(swatch => swatch.label)).toEqual([
+      '🐧  Adelie',
+      '🐦  Chinstrap',
+      '❓  Gentoo',
+    ]);
+    expect(drawn.map(swatch => swatch.path)).toEqual([null, null, null]);
+    // Named ahead of the platform's sans-serif, as the marks themselves are, so
+    // the glyph is not drawn as a missing-character box.
+    drawn.forEach(swatch => expect(swatch.labelFont).toContain('Emoji'));
+  });
+
+  /**
+   * A text unit is a string in the color the scale gave it, and so is a legend
+   * label -- so the entry is the swatch, and no symbol is drawn beside it.
+   */
+  it('colors the labels rather than drawing a swatch for text marks', async () => {
+    const drawn = await swatches({shape: 'text', text: {key: 'species'}});
+    expect(drawn.map(swatch => swatch.path)).toEqual([null, null, null]);
+    expect(drawn.map(swatch => swatch.labelFill)).toEqual(drawn.map(swatch => swatch.fill));
+    expect(new Set(drawn.map(swatch => swatch.labelFill)).size).toBe(SPECIES.length);
+  });
+
+  /** Nothing in a vega legend draws a picture, so the swatch is its frame. */
+  it('gives an image mark the square its picture is fit into', async () => {
+    const drawn = await swatches({
+      shape: 'image',
+      image: {key: 'species', range: [RED_IMAGE, BLUE_IMAGE]},
+    });
+    expect(kinds(drawn)).toEqual(new Set(['rect']));
+  });
+
+  /**
+   * A swatch stands for a whole color group, so it can only show content the
+   * group has one of. Keyed by anything but the field the legend explains, the
+   * content varies within the group and there is no one outline to draw.
+   */
+  it('falls back to a plain swatch where the content varies inside a group', async () => {
+    const drawn = await swatches({
+      shape: 'path',
+      path: {key: 'island', range: [TRIANGLE, BAR]},
+    });
+    expect(kinds(drawn)).toEqual(new Set(['circle']));
+  });
+
+  /** Told to draw a shape but not what to draw, the units fall back to circles. */
+  it('follows the marks when a shape was given nothing to draw', async () => {
+    const drawn = await swatches({shape: 'emoji'});
+    expect(kinds(drawn)).toEqual(new Set(['circle']));
+    expect(drawn.map(swatch => swatch.label)).toEqual(SPECIES);
+  });
+
+  /**
+   * The swatches are signals over `markShape` rather than a decision taken
+   * while the spec was built, so reshaping a live view reshapes them with the
+   * marks -- which is the whole reason that signal exists.
+   */
+  it('reshapes with a live view', async () => {
+    const scene = buildSceneForSpec(
+      markSpec({shape: 'emoji', emoji: {key: 'species', range: ['🐧', '🐦', '🐤']}}),
+    );
+    const view = new vega.View(
+      vega.parse(buildVegaSpec(scene.spec, scene.data) as vega.Spec),
+      {renderer: 'none'},
+    );
+    try {
+      const glyphs = swatchesFrom(await view.toSVG());
+      expect(glyphs.map(swatch => swatch.label)).toEqual([
+        '🐧  Adelie',
+        '🐦  Chinstrap',
+        '🐤  Gentoo',
+      ]);
+
+      await view.signal('markShape', 'rect').runAsync();
+      const squares = swatchesFrom(await view.toSVG());
+      expect(kinds(squares)).toEqual(new Set(['rect']));
+      expect(squares.map(swatch => swatch.label)).toEqual(SPECIES);
+    } finally {
+      view.finalize();
+    }
   });
 });
 

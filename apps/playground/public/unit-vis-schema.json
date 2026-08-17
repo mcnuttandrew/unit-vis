@@ -349,7 +349,7 @@
       }
     },
     "Legend": {
-      "description": "A color legend for the key the marks are colored by. Swatches take the shape\nof the marks they stand for.\n\nRequires `mark.color.key` — with nothing to explain, no legend is drawn.\n\nVega backend only. The old (d3) backend ignores it.",
+      "description": "A color legend for the key the marks are colored by. Swatches are drawn like\nthe marks they stand for: a square for `rect` units and a circle for\n`circle` ones, the outline itself for `path`, the glyph written beside the\nlabel for `emoji`, and for `text` no swatch at all — the label is drawn in\nthe entry's own color, which is what a text unit is. An `image` mark's\npicture cannot be put in a legend, so its swatch is the square that picture\nis fit into.\n\nA swatch stands for a whole color group, so it can only show content that\ngroup has one of: a literal, or a `mark.emoji`/`text`/`path` keyed by the\nsame field the legend explains. Keyed by anything else the content varies\nwithin the group, and the swatches fall back to plain circles.\n\nRequires `mark.color.key` — with nothing to explain, no legend is drawn.\n\nVega backend only. The old (d3) backend ignores it.",
       "type": "object",
       "properties": {
         "orient": {
@@ -983,7 +983,7 @@
           "default": false,
           "anyOf": [
             {
-              "description": "A color legend for the key the marks are colored by. Swatches take the shape\nof the marks they stand for.\n\nRequires `mark.color.key` — with nothing to explain, no legend is drawn.\n\nVega backend only. The old (d3) backend ignores it.",
+              "description": "A color legend for the key the marks are colored by. Swatches are drawn like\nthe marks they stand for: a square for `rect` units and a circle for\n`circle` ones, the outline itself for `path`, the glyph written beside the\nlabel for `emoji`, and for `text` no swatch at all — the label is drawn in\nthe entry's own color, which is what a text unit is. An `image` mark's\npicture cannot be put in a legend, so its swatch is the square that picture\nis fit into.\n\nA swatch stands for a whole color group, so it can only show content that\ngroup has one of: a literal, or a `mark.emoji`/`text`/`path` keyed by the\nsame field the legend explains. Keyed by anything else the content varies\nwithin the group, and the swatches fall back to plain circles.\n\nRequires `mark.color.key` — with nothing to explain, no legend is drawn.\n\nVega backend only. The old (d3) backend ignores it.",
               "type": "object",
               "properties": {
                 "orient": {

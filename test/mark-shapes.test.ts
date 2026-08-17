@@ -17,39 +17,12 @@ import * as vega from 'vega';
 import {buildVegaSpec} from 'unit-vis-vega';
 import type {DataRow, Mark, Spec} from '@unit-vis/core';
 import {boundingBox, samplePath, type Box} from './harness/path-geometry';
+import {BLUE_IMAGE, RED_IMAGE, installLoadedImage} from './harness/loaded-image';
 import {buildSceneForSpec, collectVegaLogs, renderOld, renderVegaHeadless} from './harness/render';
 import {modelFromVegaSvg, parseSvg, parseTransform} from './harness/svg-model';
 import {VEGA_ONLY_SPECS} from './harness/specs';
 
-/**
- * jsdom will not fetch an image, so nothing ever fires `onload` and vega's
- * resource loader -- which every render waits on -- waits forever. This stands
- * in an image that reports itself loaded as soon as it is pointed somewhere,
- * which is all the renderer needs from it: the mark is drawn at the size the
- * encoding gives, and the url is copied onto the element as it stands.
- */
-beforeAll(() => {
-  class LoadedImage {
-    onload: (() => void) | null = null;
-    onerror: (() => void) | null = null;
-    crossOrigin: string | null = null;
-    complete = false;
-    width = 8;
-    height = 8;
-    private url = '';
-
-    get src(): string {
-      return this.url;
-    }
-
-    set src(value: string) {
-      this.url = value;
-      this.complete = true;
-      queueMicrotask(() => this.onload && this.onload());
-    }
-  }
-  (globalThis as {Image?: unknown}).Image = LoadedImage;
-});
+beforeAll(installLoadedImage);
 
 /** Three kinds, in runs of 3, 2 and 1, so a count-sized level makes them differ. */
 const ROWS: DataRow[] = [
@@ -61,11 +34,8 @@ const ROWS: DataRow[] = [
   {name: 'donald', kind: 'bird'},
 ];
 
-/** An 8x8 red square, so an image mark needs nothing off the network. */
-const RED =
-  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4' +
-  'IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InJlZCIvPjwvc3ZnPg==';
-const BLUE = RED.replace('cmVk', 'Ymx1ZQ');
+const RED = RED_IMAGE;
+const BLUE = BLUE_IMAGE;
 
 /** A triangle in the (-1, -1) to (1, 1) box a `path` mark is read in. */
 const TRIANGLE = 'M0,-1L1,1L-1,1Z';

@@ -407,6 +407,19 @@ function hasRange(content: MarkContent): boolean {
 }
 
 /**
+ * The fonts an emoji is drawn with, mark and legend swatch alike.
+ *
+ * Vega's default font is whatever the platform calls `sans-serif`, which on a
+ * machine whose sans-serif has no emoji coverage draws every glyph as a
+ * missing-character box. Naming the emoji fonts ahead of it fixes that, and
+ * leaving `sans-serif` at the end of the stack keeps ordinary text -- the
+ * category name beside the glyph in a legend -- looking the way the rest of the
+ * chart's text does.
+ */
+const EMOJI_FONT =
+  '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+/**
  * The channel's configuration, as signals.
  *
  * All of it rides on signals rather than being baked into expressions and scale
@@ -552,12 +565,7 @@ const CONTENT_ENCODINGS: {
       fontSize: { field: "fontSize" },
       align: { value: "center" },
       baseline: { value: "middle" },
-      // Vega's default font is whatever the platform calls `sans-serif`, which
-      // on a machine whose sans-serif has no emoji coverage draws every glyph
-      // as a missing-character box. Name the emoji fonts ahead of it.
-      font: {
-        value: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif',
-      },
+      font: { value: EMOJI_FONT },
     },
   },
   text: {
@@ -1282,8 +1290,132 @@ function buildLabelTitleAxis(level: ResolvedAxis): VegaAxis {
   } as VegaAxis;
 }
 
-/** A swatch per color-scale entry, shaped like the marks it stands for. */
-function buildLegend(legend: ResolvedLegend): VegaLegend {
+/**
+ * What a channel would draw for one legend entry, as an expression over
+ * `datum.value` -- the value of the color key that entry stands for -- or null
+ * where that cannot be known.
+ *
+ * A swatch stands for a whole color group, so it can only show that group's
+ * content where the group has one of its own: a literal, which every unit in
+ * the chart draws alike, or a channel keyed by the very field the legend
+ * explains, which is how these charts are usually written -- an emoji per kind
+ * of weather, colored by kind of weather. Keyed by anything else the content
+ * varies inside the group the swatch stands for, and there is no one glyph or
+ * outline to put in it; the expression evaluates to null and the swatch falls
+ * back to a plain one.
+ *
+ * The key is compared inside the expression rather than here so that the swatch
+ * follows a live view re-pointed at another field, exactly as the marks do.
+ */
+function legendContentExpr(
+  channel: ContentChannel,
+  content: MarkContent,
+): string {
+  const signal = contentSignal(channel);
+  // As a string, the way `valueExpr` reads the field off a row: the entry's
+  // value comes off the color scale's domain untouched, so a csv column vega
+  // parsed as numbers reaches the swatch as a number and would miss a domain
+  // written -- as it has to be, for the units -- in strings.
+  const value = "toString(datum.value)";
+  // The same lookup `contentExpr` does, against the entry's value rather than
+  // against a unit's -- unlisted values take `default` rather than a range
+  // entry of their own.
+  const drawn = hasRange(content)
+    ? `isValid(${domainSignal(channel)}) && indexof(${domainSignal(channel)}, ${value}) < 0` +
+      ` ? ${signal}.default` +
+      ` : scale('${channelScale(channel)}', ${value})`
+    : value;
+  return (
+    `!isValid(${signal}.key) ? ${signal}.value` +
+    ` : ${signal}.key === colorKey ? (${drawn})` +
+    ` : null`
+  );
+}
+
+/**
+ * Vega's own defaults for legend label text. An encoding is all-or-nothing --
+ * the swatches that are restyled below and the ones that are not go through the
+ * same expression -- so the branch that changes nothing has to say what vega
+ * would have drawn.
+ */
+const LEGEND_LABEL_COLOR = "#000";
+const LEGEND_LABEL_FONT = "sans-serif";
+
+/**
+ * A swatch per color-scale entry, drawn like the marks it stands for.
+ *
+ * A swatch is a claim about what the reader will find in the chart, so each
+ * shape gets as much of itself into one as vega's legends allow:
+ *
+ *   - `rect` gets a square and `circle` vega's own circle,
+ *   - `path` gets the outline itself, per entry where the paths are keyed by
+ *     the field the legend explains,
+ *   - `emoji` gets the glyph, in place of the swatch rather than in it: legend
+ *     symbols are symbol marks, which cannot draw text, so the entry is written
+ *     as "<glyph>  <label>" with the symbol hidden behind it,
+ *   - `text` gets no swatch at all and its label drawn in the entry's own
+ *     color, since a text unit is exactly that -- a string in the color the
+ *     scale gave it,
+ *   - `image` gets the square its picture is fit inside, which is as close as
+ *     this gets: nothing in a vega legend can draw a picture.
+ *
+ * Everything here is a signal over `markShape`, so reshaping a live view
+ * reshapes its swatches with it. A shape whose channel the spec left empty
+ * draws circles (see `contentChannels`), and its swatches say so.
+ */
+function buildLegend(legend: ResolvedLegend, mark: Partial<Mark>): VegaLegend {
+  const channels = contentChannels(mark);
+  /** The channel's content for an entry, or null where it has no mark to draw. */
+  const contentOf = (channel: ContentChannel): string | null =>
+    channels.indexOf(channel) < 0
+      ? null
+      : `(${legendContentExpr(channel, mark[channel]!)})`;
+  /**
+   * Whether `markShape` is this shape, or null where the spec gave it nothing
+   * to draw -- a branch that can never be taken, and so is left out entirely.
+   * A chart drawn with the shapes that need no content emits the legend it
+   * always did.
+   */
+  const drawing = (channel: ContentChannel): string | null =>
+    channels.indexOf(channel) < 0 ? null : `markShape === '${channel}'`;
+
+  const path = contentOf("path");
+  const emoji = contentOf("emoji");
+  // A rect unit fills its container; an image is fit inside one. Both are the
+  // square the chart draws in.
+  const square = ["markShape === 'rect'", drawing("image")]
+    .filter(Boolean)
+    .join(" || ");
+  // The shapes whose swatch is the entry itself, so that a symbol beside it
+  // would only be a colored blob the chart never draws.
+  const asGlyph = emoji && `${drawing("emoji")} && isValid(${emoji})`;
+  const asText = drawing("text");
+  const drawnAsEntry = [asGlyph, asText].filter(Boolean).join(" || ");
+
+  const labels: Record<string, unknown> = {
+    ...(emoji
+      ? {
+          text: {
+            signal: `${asGlyph} ? ${emoji} + '  ' + datum.label : datum.label`,
+          },
+          font: {
+            signal:
+              `${asGlyph} ? ${JSON.stringify(EMOJI_FONT)}` +
+              ` : ${JSON.stringify(LEGEND_LABEL_FONT)}`,
+          },
+        }
+      : {}),
+    ...(asText
+      ? {
+          fill: {
+            signal:
+              `${asText} ? scale('colorScale', datum.value)` +
+              ` : ${JSON.stringify(LEGEND_LABEL_COLOR)}`,
+          },
+        }
+      : {}),
+  };
+
   return {
     fill: "colorScale",
     title: legend.title,
@@ -1291,9 +1423,16 @@ function buildLegend(legend: ResolvedLegend): VegaLegend {
     encode: {
       symbols: {
         update: {
-          shape: { signal: "markShape === 'rect' ? 'square' : 'circle'" },
+          shape: {
+            signal:
+              `${square} ? 'square'` +
+              (path ? ` : ${drawing("path")} && isValid(${path}) ? ${path}` : "") +
+              ` : 'circle'`,
+          },
+          ...(drawnAsEntry ? { opacity: { signal: `${drawnAsEntry} ? 0 : 1` } } : {}),
         },
       },
+      ...(Object.keys(labels).length ? { labels: { update: labels } } : {}),
     },
   } as VegaLegend;
 }
@@ -1338,7 +1477,7 @@ export function buildVegaSpec(spec: Spec, rows: DataRow[]): VegaSpec {
             .map((level) => (isAxis(level) ? buildAxis(level) : buildLabelTitleAxis(level))),
         }
       : {}),
-    ...(legend ? { legends: [buildLegend(legend)] } : {}),
+    ...(legend ? { legends: [buildLegend(legend, spec.mark ?? {})] } : {}),
     scales: [
       {
         name: "xscale",

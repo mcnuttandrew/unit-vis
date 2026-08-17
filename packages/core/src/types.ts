@@ -348,8 +348,18 @@ export interface Labels {
 }
 
 /**
- * A color legend for the key the marks are colored by. Swatches take the shape
- * of the marks they stand for.
+ * A color legend for the key the marks are colored by. Swatches are drawn like
+ * the marks they stand for: a square for `rect` units and a circle for
+ * `circle` ones, the outline itself for `path`, the glyph written beside the
+ * label for `emoji`, and for `text` no swatch at all — the label is drawn in
+ * the entry's own color, which is what a text unit is. An `image` mark's
+ * picture cannot be put in a legend, so its swatch is the square that picture
+ * is fit into.
+ *
+ * A swatch stands for a whole color group, so it can only show content that
+ * group has one of: a literal, or a `mark.emoji`/`text`/`path` keyed by the
+ * same field the legend explains. Keyed by anything else the content varies
+ * within the group, and the swatches fall back to plain circles.
  *
  * Requires `mark.color.key` — with nothing to explain, no legend is drawn.
  *
