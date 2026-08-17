@@ -7,10 +7,11 @@ import type {
   Scale as VegaScale,
   Signal as VegaSignal,
   Spec as VegaSpec,
+  Title as VegaTitle,
   Transforms,
 } from "vega";
 import { Handler as TooltipHandler } from "vega-tooltip";
-import { defaultSetting } from "@unit-vis/core";
+import { defaultSetting, markSumKey } from "@unit-vis/core";
 
 import type {
   DataRow,
@@ -21,13 +22,16 @@ import type {
   MarkContent,
   Padding,
   Spec,
+  Title,
 } from "@unit-vis/core";
 import {
   ROWS_BY_ID,
   buildLayoutData,
+  fieldRef,
   isTreemap,
   isWeightedPack,
   levelName,
+  levelRowsName,
 } from "./layout.js";
 
 /**
@@ -53,13 +57,13 @@ import {
  */
 
 /**
- * Defaults for the two decorations this backend draws and the old one does not.
- * They live here rather than in `constants` because `applyDefault` fills its
- * defaults in on the spec itself, and both decorations are off until a spec
- * asks for them.
+ * Defaults for the three decorations this backend draws and the old one does
+ * not. They live here rather than in `constants` because `applyDefault` fills
+ * its defaults in on the spec itself, and every decoration is off until a spec
+ * asks for it.
  *
- * `orient` has no default of its own: an axis takes the side its level divides
- * space along unless the spec names one. See `sideFor`.
+ * `orient` has no default of its own for labels: an axis takes the side its
+ * level divides space along unless the spec names one. See `sideFor`.
  */
 const labelDefaults: Required<Omit<Labels, "layouts" | "orient">> = {
   offset: 4,
@@ -67,6 +71,19 @@ const labelDefaults: Required<Omit<Labels, "layouts" | "orient">> = {
   color: "#333333",
 };
 const legendDefaults: Required<Omit<Legend, "title">> = { orient: "right" };
+const titleDefaults: Required<Omit<Title, "text" | "subtitle">> = {
+  orient: "top",
+  anchor: "middle",
+  fontSize: 15,
+  color: "#333333",
+};
+
+/** Type for the second line, which is set smaller and quieter than the first. */
+const SUBTITLE_SIZE_DROP = 3;
+const SUBTITLE_COLOR = "#666666";
+/** Gap between the title block and whatever it sits outside of. */
+const TITLE_OFFSET = 6;
+const SUBTITLE_PADDING = 3;
 
 /** Subgroup types whose containers carry a label worth printing. */
 const NAMING_SUBGROUPS = new Set(["groupby", "bin"]);
@@ -334,6 +351,54 @@ function resolveAxes(spec: Spec, explained: string | null): ResolvedAxes | null 
     color: options.color ?? labelDefaults.color,
     levels,
   };
+}
+
+/**
+ * `spec.title`, as a string or an object, filled in from the defaults. A title
+ * with no text to draw is no title at all, so a spec carrying an empty string
+ * is treated as one that carries none.
+ */
+function resolveTitle(spec: Spec): Required<Title> | null {
+  const options: Title | undefined =
+    typeof spec.title === "string" ? { text: spec.title } : spec.title;
+  if (!options || !options.text) {
+    return null;
+  }
+  return {
+    text: options.text,
+    subtitle: options.subtitle ?? "",
+    orient: options.orient ?? titleDefaults.orient,
+    anchor: options.anchor ?? titleDefaults.anchor,
+    fontSize: options.fontSize ?? titleDefaults.fontSize,
+    color: options.color ?? titleDefaults.color,
+  };
+}
+
+/**
+ * The title block vega draws, outside everything else the chart placed.
+ *
+ * `frame: "group"` anchors it to the plotting area rather than to the bounds of
+ * what was drawn, so a title stays put over the chart instead of sliding along
+ * with an axis or a legend appearing beside it.
+ */
+function buildTitle(title: Required<Title>): VegaTitle {
+  return {
+    text: title.text,
+    ...(title.subtitle
+      ? {
+          subtitle: title.subtitle,
+          subtitleFontSize: Math.max(1, title.fontSize - SUBTITLE_SIZE_DROP),
+          subtitleColor: SUBTITLE_COLOR,
+          subtitlePadding: SUBTITLE_PADDING,
+        }
+      : {}),
+    orient: title.orient,
+    anchor: title.anchor,
+    frame: "group",
+    offset: TITLE_OFFSET,
+    fontSize: title.fontSize,
+    color: title.color,
+  } as VegaTitle;
 }
 
 /** A legend needs something to explain, so it needs a color key. */
@@ -620,6 +685,134 @@ function buildContentMark(channel: ContentChannel): VegaMark {
   } as VegaMark;
 }
 
+/** One `markSumVal` per container of the deepest level. */
+const MARK_SUMS = "__markSums";
+
+/**
+ * The field `mark.size.type: "sum"` sums, or nothing when the spec has no such
+ * field to sum. A `sum` policy with no key raises here rather than compiling to
+ * a chart of marks with no radius, which is what the unimplemented policies
+ * used to draw.
+ */
+function markSizeKey(mark: Partial<Mark>): string | null {
+  if (mark.size && mark.size.type === "sum") {
+    return markSumKey(mark as Mark);
+  }
+  return (mark.size && mark.size.key) || null;
+}
+
+/**
+ * What a `sum`-sized mark's area stands for: `mark.size.key` totalled over the
+ * rows of the container the mark is drawn in.
+ *
+ * The layout's own `sum` is a different quantity -- a different field, read at
+ * whatever level asked for it -- so this is its own aggregate over the rows the
+ * deepest level sorted, joined back onto the units by container key.
+ */
+function buildMarkSumData(key: string, numLayouts: number): VegaData {
+  return {
+    name: MARK_SUMS,
+    source: levelRowsName(numLayouts),
+    transform: [
+      {
+        type: "aggregate",
+        groupby: [`ck${numLayouts}`],
+        fields: [fieldRef(key)],
+        ops: ["sum"],
+        as: ["markSumVal"],
+      } as Transforms,
+    ],
+  };
+}
+
+/**
+ * `mark.size`, as the transforms that turn each unit's container and contents
+ * into the radius it is drawn at.
+ *
+ * Every policy resolves to a room -- the largest circle that fits -- and a
+ * share of it. `max` takes its room from the unit's own container, or, shared,
+ * from the tightest container in the chart. The other three take it from the
+ * unit's *sizing group*, which is the whole chart when `isShared` and the units
+ * under one parent container when not, and it is the largest circle that fits
+ * every container in that group. `uniform` then takes all of it and the two
+ * data policies take the share their value has earned, by area, of the largest
+ * value in the same group.
+ *
+ * Both aggregates are computed whichever policy is in play, because the policy
+ * is a signal: a live view can be switched from `max` to `sum` without the
+ * dataflow being rebuilt.
+ */
+function sizeTransforms(mark: Partial<Mark>, numLayouts: number): Transforms[] {
+  const sumKey = markSizeKey(mark);
+  // The parent container's key. A spec with no layouts draws its one mark for
+  // the canvas, which is its own parent for these purposes.
+  const parentKey = `ck${Math.max(0, numLayouts - 1)}`;
+  return [
+    ...(sumKey
+      ? [
+          {
+            type: "lookup",
+            from: MARK_SUMS,
+            key: `ck${numLayouts}`,
+            fields: [`ck${numLayouts}`],
+            values: ["markSumVal"],
+            default: 0,
+          } as Transforms,
+        ]
+      : []),
+    {
+      type: "formula",
+      as: "markValue",
+      expr:
+        "markSizeType === 'count' ? datum.cnt" +
+        " : markSizeType === 'sum' ? (isValid(datum.markSumVal) ? datum.markSumVal : 0)" +
+        " : 1",
+    },
+    { type: "formula", as: "inscribed", expr: "min(datum.width, datum.height) / 2" },
+    // A whole-dataset aggregate joined back onto each unit, and the same thing
+    // per parent container: the two sizing groups, both always available so the
+    // sharing flag stays a signal.
+    {
+      type: "joinaggregate",
+      fields: ["inscribed", "markValue"],
+      ops: ["min", "max"],
+      as: ["chartRoom", "chartValueMax"],
+    },
+    {
+      type: "joinaggregate",
+      groupby: [parentKey],
+      fields: ["inscribed", "markValue"],
+      ops: ["min", "max"],
+      as: ["groupRoom", "groupValueMax"],
+    },
+    {
+      type: "formula",
+      as: "sizeRoom",
+      expr:
+        "markSizeType === 'max' && !markSizeShared ? datum.inscribed" +
+        " : markSizeShared ? datum.chartRoom" +
+        " : datum.groupRoom",
+    },
+    {
+      type: "formula",
+      as: "sizeValueMax",
+      expr: "markSizeShared ? datum.chartValueMax : datum.groupValueMax",
+    },
+    // Area carries the value, so the share of the room is a square root. A
+    // group whose values are all zero -- or a field that is not there at all --
+    // has nothing to draw a proportion against, and draws nothing.
+    {
+      type: "formula",
+      as: "radius",
+      expr:
+        "markSizeType === 'max' || markSizeType === 'uniform' ? datum.sizeRoom" +
+        " : datum.sizeValueMax > 0" +
+        " ? datum.sizeRoom * sqrt(max(0, datum.markValue) / datum.sizeValueMax)" +
+        " : 0",
+    },
+  ];
+}
+
 function buildData(
   spec: Spec,
   rows: DataRow[],
@@ -700,6 +893,13 @@ function buildData(
     ],
   });
 
+  // What a `sum`-sized mark reads, when the spec named a field to sum. Pushed
+  // ahead of the units because they look themselves up in it.
+  const sumKey = markSizeKey(spec.mark ?? {});
+  if (sumKey) {
+    data.push(buildMarkSumData(sumKey, numLayouts));
+  }
+
   // Unit marks: one per container of the deepest level that holds any rows.
   // A container the layout made but no row landed in -- an empty bin, a
   // category absent from this small multiple -- takes its space and draws its
@@ -735,24 +935,7 @@ function buildData(
         as: valueField(channel),
         expr: valueExpr(channel),
       })),
-      {
-        type: "formula",
-        as: "isolatedRadius",
-        expr: "markSizeType === 'max' ? min(datum.width, datum.height) / 2 : 0",
-      },
-      // The shared-size policy is a min across every unit in the chart, which
-      // is exactly a whole-dataset aggregate joined back onto each row.
-      {
-        type: "joinaggregate",
-        fields: ["isolatedRadius"],
-        ops: ["min"],
-        as: ["sharedRadius"],
-      },
-      {
-        type: "formula",
-        as: "radius",
-        expr: "markSizeShared ? datum.sharedRadius : datum.isolatedRadius",
-      },
+      ...sizeTransforms(spec.mark ?? {}, numLayouts),
     ],
   });
 
@@ -1452,7 +1635,8 @@ export function buildVegaSpec(spec: Spec, rows: DataRow[]): VegaSpec {
   // The legend names the groups of the field it explains, so the level split
   // on that field needs no annotation of its own.
   const axes = resolveAxes(spec, legend ? spec.mark!.color!.key! : null);
-  const decorated = Boolean(axes || legend);
+  const title = resolveTitle(spec);
+  const decorated = Boolean(axes || legend || title);
 
   return {
     width: spec.width,
@@ -1467,6 +1651,7 @@ export function buildVegaSpec(spec: Spec, rows: DataRow[]): VegaSpec {
     // rather than clipping them.
     padding: 0,
     autosize: decorated ? { type: "pad", resize: false } : { type: "none" },
+    ...(title ? { title: buildTitle(title) } : {}),
     signals: buildSignals(spec, axes),
     data: buildData(spec, rows, axes),
     // Real axes, and the title-only ones that name the levels drawn as labels.

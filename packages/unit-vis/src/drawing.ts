@@ -1,4 +1,4 @@
-import { asRow, defaultSetting, min } from "@unit-vis/core";
+import { asRow, defaultSetting, getMarkValue, max, min } from "@unit-vis/core";
 import type { Container, Spec, Layout, Mark } from "@unit-vis/core";
 import { scaleOrdinal } from "d3-scale";
 import { select } from "d3-selection";
@@ -22,29 +22,6 @@ function childrenOf(container: Container): Container[] {
   return container.contents as Container[];
 }
 
-function buildLeafContainersArr(
-  container: Container,
-  layout: Layout,
-): Container[] {
-  if (layout && layout.child !== "EndOfLayout") {
-    const leafs: Container[] = [];
-    childrenOf(container).forEach(function (c) {
-      const childLayout = typeof layout === "string" ? null : layout.child;
-      if (!childLayout) {
-        return;
-      }
-      const newLeaves = buildLeafContainersArr(c, childLayout as Layout);
-
-      newLeaves.forEach(function (d) {
-        leafs.push(d);
-      });
-    });
-    return leafs;
-  } else {
-    return childrenOf(container);
-  }
-}
-
 /** One shape per leaf container, so one per data row. */
 function setMarksColor<GElement extends BaseType>(
   marks: Selection<GElement, Container, BaseType, unknown>,
@@ -64,48 +41,94 @@ function setMarksColor<GElement extends BaseType>(
   });
 }
 
-function calcRadiusIsolated(
-  leafContainer: Container,
-  markPolicy: Mark,
-): number {
-  const width = leafContainer.visualspace.width;
-  const height = leafContainer.visualspace.height;
+/** The largest circle the container has room for: half its shorter side. */
+function inscribedRadius(container: Container): number {
+  const { width, height } = container.visualspace;
+  return width > height ? height / 2.0 : width / 2.0;
+}
 
+/**
+ * The marks one mark is sized against, which is what `mark.size.isShared`
+ * chooses: every mark in the chart, or the ones under the same parent
+ * container.
+ *
+ * Grouping by parent rather than by anything the layout records keeps this
+ * true of levels the grammar has no name for -- a sharing group is whatever
+ * ended up in one box.
+ *
+ * Containers no row landed in are left out. They stand for nothing, so their
+ * value would drag the group's largest around and their box would drag its
+ * room; the vega backend never even builds a mark for one.
+ */
+function sizingGroups(
+  leafContainers: Container[],
+  markPolicy: Mark,
+): Map<unknown, Container[]> {
+  const groups = new Map<unknown, Container[]>();
+  const shared = Boolean(markPolicy.size!.isShared);
+  leafContainers.forEach((container) => {
+    if (!container.contents.length) {
+      return;
+    }
+    const key = shared ? null : container.parent;
+    const group = groups.get(key);
+    if (group) {
+      group.push(container);
+    } else {
+      groups.set(key, [container]);
+    }
+  });
+  return groups;
+}
+
+/**
+ * One radius per leaf container, under the policy `mark.size` asked for.
+ *
+ * `max` is per container: as large as the box allows, or -- shared -- the
+ * smallest such radius in the chart, so that no mark is bigger than the
+ * tightest box could take. The other three size against a *group*, so they are
+ * resolved a group at a time: the group's room is the smallest circle that
+ * fits every container in it, and a mark takes the share of that room its
+ * value has earned. Area carries the value, so the share is a square root.
+ *
+ * A container the group left out -- an empty one -- is missing from the result
+ * and drawn at a radius of nothing, since it has no value to stand for.
+ */
+function calcRadii(
+  leafContainers: Container[],
+  markPolicy: Mark,
+): Map<Container, number> {
+  const radii = new Map<Container, number>();
   if (markPolicy.size!.type === "max") {
-    return width > height ? height / 2.0 : width / 2.0;
-  } else {
-    // AM: HACK THIS 0 MIGHT BREAK THINGS
-    return 0;
+    const shared = markPolicy.size!.isShared
+      ? min(leafContainers, inscribedRadius)
+      : undefined;
+    leafContainers.forEach((container) =>
+      radii.set(container, shared ?? inscribedRadius(container)),
+    );
+    return radii;
   }
-}
 
-function calcRadiusShared(
-  rootContainer: Container,
-  markPolicy: Mark,
-  layoutList: { head: Layout },
-): number {
-  return min(buildLeafContainersArr(rootContainer, layoutList.head), (d) =>
-    calcRadiusIsolated(d, markPolicy),
-  )!;
-}
-
-function calcRadius(
-  leafContainer: Container,
-  rootContainer: Container,
-  markPolicy: Mark,
-  layoutList: { head: Layout },
-): number {
-  if (markPolicy.size!.isShared) {
-    return calcRadiusShared(rootContainer, markPolicy, layoutList);
-  } else {
-    return calcRadiusIsolated(leafContainer, markPolicy);
-  }
+  sizingGroups(leafContainers, markPolicy).forEach((group) => {
+    const room = min(group, inscribedRadius) ?? 0;
+    const largest = max(group, (d) => getMarkValue(d, markPolicy)) ?? 0;
+    group.forEach((container) => {
+      const value = Math.max(0, getMarkValue(container, markPolicy));
+      radii.set(container, largest > 0 ? room * Math.sqrt(value / largest) : 0);
+    });
+  });
+  return radii;
 }
 
 export function drawUnit(
   container: Container,
   spec: Spec,
-  layoutList: { head: Layout },
+  /**
+   * The layout list the scene was built with. The leaf containers come off the
+   * selection this builds rather than from a second walk of the tree, so
+   * nothing reads it -- it stays in the signature, which is exported.
+   */
+  _layoutList: { head: Layout },
   divId: string,
 ): void {
   const layouts = spec.layouts;
@@ -170,6 +193,12 @@ export function drawUnit(
     currentGroup = tempGroup;
   });
 
+  // The containers the marks are drawn in, which is what the size policies are
+  // resolved over. They come off the selection because that is what was
+  // actually drawn: a spec with no layouts at all draws one mark for the root
+  // container, and there is no level of leaves to walk to.
+  const leafContainers = currentGroup.data();
+
   if (markPolicy.shape === "rect") {
     const marks = currentGroup
       .append("rect")
@@ -180,11 +209,12 @@ export function drawUnit(
       .style("fill", "purple");
     setMarksColor(marks, markPolicy);
   } else {
+    const radii = calcRadii(leafContainers, markPolicy);
     const marks = currentGroup
       .append("circle")
       .attr("cx", (d) => d.visualspace.width / 2)
       .attr("cy", (d) => d.visualspace.height / 2)
-      .attr("r", (d) => calcRadius(d, container, markPolicy, layoutList))
+      .attr("r", (d) => radii.get(d) ?? 0)
       .style("fill", "purple");
     setMarksColor(marks, markPolicy);
   }

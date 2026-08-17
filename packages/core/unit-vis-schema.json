@@ -24,7 +24,7 @@
       }
     },
     "SizePolicies": {
-      "description": "How big a unit mark is drawn inside the container the layout gave it.\n\nOnly `max` is implemented: it inscribes the mark in its container. The other\nvalues fall through to a radius of 0, which draws nothing — they are\nplaceholders for size policies the paper describes but this library does not\nimplement yet. Use `max` unless you want the marks hidden.",
+      "description": "How big a unit mark is drawn inside the container the layout gave it.\n\nA mark stands for its container, so the three policies below `max` read the\nrows in it and turn what they find into an *area* — the mark's area is\nproportional to the value, which is the only way a circle encodes a number\nhonestly.\n\n- `max` — as large as the container allows: radius is half the container's\n  shorter side, so the mark is inscribed in it. Encodes nothing; this is the\n  default and what a chart of one row per container usually wants.\n- `uniform` — one size for every mark in the sharing group, the largest that\n  fits every container in it. Also encodes nothing, but says so evenly:\n  marks stay the same size where `max` would have them grow with their box.\n- `count` — area proportional to the number of rows in the container.\n- `sum` — area proportional to the sum of `Mark.size.key` over those rows.\n\n`count` and `sum` are scaled so the largest value in the sharing group is\ndrawn at the `uniform` size for that group and everything else is a share of\nit, which keeps every mark inside its container and areas comparable within\nthe group. A container whose value is zero or missing draws nothing.\n\nOver a `flatten` level, where each container holds exactly one row, `count`\nis 1 everywhere and so draws the same chart as `uniform`. Sizing marks by\ndata means a deepest level that groups rather than flattens — one mark per\ngroup, sized by what the group holds, which is Table 2's bubble chart.\n\nSee `Mark.size.isShared` for what the sharing group is.",
       "enum": [
         "count",
         "max",
@@ -130,12 +130,12 @@
           "type": "object",
           "properties": {
             "isShared": {
-              "description": "When true, every circle in the chart is drawn at the radius of the\nsmallest one, so mark area never encodes anything accidentally. When\nfalse, each circle is sized against its own container, so marks in\nroomier containers come out bigger.",
+              "description": "The group a mark is sized against — what its size can be read next to.\n\nTrue is the whole chart: one size, or one value-to-area scale, across\nevery mark drawn. False is the marks sharing a parent container, so each\ngroup is sized against its own contents and sizes compare within a group\nbut not across them. This is the same distinction `Layout.size.isShared`\ndraws one level up.\n\n`max` is the exception, since it is a fact about a single container\nrather than about a group: false sizes each mark against its own\ncontainer, so marks in roomier containers come out bigger, and true\ndraws every mark at the radius of the smallest one.",
               "default": false,
               "type": "boolean"
             },
             "type": {
-              "description": "The sizing rule. Use `max`, which inscribes the circle in its container\n(radius = half the container's shorter side). The other values are\nunimplemented and render a radius of 0, i.e. invisible marks.\n\nHow big a unit mark is drawn inside the container the layout gave it.\n\nOnly `max` is implemented: it inscribes the mark in its container. The other\nvalues fall through to a radius of 0, which draws nothing — they are\nplaceholders for size policies the paper describes but this library does not\nimplement yet. Use `max` unless you want the marks hidden.",
+              "description": "The sizing rule: how much of the room it has each mark takes, and what\nthat says. See `SizePolicies`.\n\nHow big a unit mark is drawn inside the container the layout gave it.\n\nA mark stands for its container, so the three policies below `max` read the\nrows in it and turn what they find into an *area* — the mark's area is\nproportional to the value, which is the only way a circle encodes a number\nhonestly.\n\n- `max` — as large as the container allows: radius is half the container's\n  shorter side, so the mark is inscribed in it. Encodes nothing; this is the\n  default and what a chart of one row per container usually wants.\n- `uniform` — one size for every mark in the sharing group, the largest that\n  fits every container in it. Also encodes nothing, but says so evenly:\n  marks stay the same size where `max` would have them grow with their box.\n- `count` — area proportional to the number of rows in the container.\n- `sum` — area proportional to the sum of `Mark.size.key` over those rows.\n\n`count` and `sum` are scaled so the largest value in the sharing group is\ndrawn at the `uniform` size for that group and everything else is a share of\nit, which keeps every mark inside its container and areas comparable within\nthe group. A container whose value is zero or missing draws nothing.\n\nOver a `flatten` level, where each container holds exactly one row, `count`\nis 1 everywhere and so draws the same chart as `uniform`. Sizing marks by\ndata means a deepest level that groups rather than flattens — one mark per\ngroup, sized by what the group holds, which is Table 2's bubble chart.\n\nSee `Mark.size.isShared` for what the sharing group is.",
               "enum": [
                 "count",
                 "max",
@@ -144,6 +144,10 @@
               ],
               "type": "string",
               "default": "max"
+            },
+            "key": {
+              "description": "The numeric field summed by `type: \"sum\"`. Required by that policy —\na `sum` with no key to sum raises rather than drawing empty marks — and\nignored by the other three.",
+              "type": "string"
             }
           }
         },
@@ -374,13 +378,107 @@
         }
       }
     },
+    "Title": {
+      "description": "A heading for the chart, drawn outside the plotting area on the side it is\noriented to. Like the other decorations it takes room around the canvas\nrather than out of it, so adding one grows the rendered svg and leaves the\nchart itself exactly `spec.width` by `spec.height`.\n\n`spec.title` also takes a plain string, which is this with nothing but\n`text` set.\n\nVega backend only. The old (d3) backend ignores it.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "description": "The heading itself. A title with no text is not drawn.",
+          "type": "string"
+        },
+        "subtitle": {
+          "description": "A second line under the heading, set smaller and lighter. Use it for the\nsentence the title is too short to hold — what the units are, where the\ndata came from.",
+          "type": "string"
+        },
+        "orient": {
+          "description": "Which edge of the chart the title sits against. The two vertical sides\nread bottom-to-top on the left and top-to-bottom on the right, the way\nvega sets them.",
+          "default": "top",
+          "enum": [
+            "bottom",
+            "left",
+            "right",
+            "top"
+          ],
+          "type": "string"
+        },
+        "anchor": {
+          "description": "Where along that edge it sits: `start` is the left end of a horizontal\ntitle, `end` the right, and the two ends swap to bottom and top on a\nvertical one.",
+          "default": "middle",
+          "enum": [
+            "end",
+            "middle",
+            "start"
+          ],
+          "type": "string"
+        },
+        "fontSize": {
+          "description": "Type size of the heading in pixels. The subtitle is set three pixels\nsmaller.",
+          "default": 15,
+          "type": "number"
+        },
+        "color": {
+          "description": "CSS color for the heading. The subtitle is drawn in a lighter gray, which\nthis does not change.",
+          "default": "#333333",
+          "type": "string"
+        }
+      }
+    },
     "Spec": {
       "description": "A specification of the unit vis grammar.\n\nA unit chart is built by repeated subdivision. The whole canvas starts as one\ncontainer holding every data row. Each entry in `layouts` takes every\ncontainer from the previous level, splits its rows into subgroups, and gives\neach subgroup a box of its own — so `layouts` reads outside-in, from the\ncoarsest split down to the individual rows. The last level is normally a\n`flatten`, which gives each row its own box; `mark` then decides what gets\ndrawn in it.\n\nA stacked bar chart, a mosaic plot, a histogram of dots and a treemap are all\nthis same pipeline with different splits and different space policies.",
       "type": "object",
       "properties": {
         "title": {
-          "description": "A name for the chart. Carried through the spec but not currently rendered\nby either backend.",
-          "type": "string"
+          "description": "A heading drawn above the chart. Pass a string for the usual case, or a\n`Title` to set the side, the alignment, the type, or a subtitle.\n\nDrawn by the vega backend only; the old backend ignores it.",
+          "anyOf": [
+            {
+              "description": "A heading for the chart, drawn outside the plotting area on the side it is\noriented to. Like the other decorations it takes room around the canvas\nrather than out of it, so adding one grows the rendered svg and leaves the\nchart itself exactly `spec.width` by `spec.height`.\n\n`spec.title` also takes a plain string, which is this with nothing but\n`text` set.\n\nVega backend only. The old (d3) backend ignores it.",
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "The heading itself. A title with no text is not drawn.",
+                  "type": "string"
+                },
+                "subtitle": {
+                  "description": "A second line under the heading, set smaller and lighter. Use it for the\nsentence the title is too short to hold — what the units are, where the\ndata came from.",
+                  "type": "string"
+                },
+                "orient": {
+                  "description": "Which edge of the chart the title sits against. The two vertical sides\nread bottom-to-top on the left and top-to-bottom on the right, the way\nvega sets them.",
+                  "default": "top",
+                  "enum": [
+                    "bottom",
+                    "left",
+                    "right",
+                    "top"
+                  ],
+                  "type": "string"
+                },
+                "anchor": {
+                  "description": "Where along that edge it sits: `start` is the left end of a horizontal\ntitle, `end` the right, and the two ends swap to bottom and top on a\nvertical one.",
+                  "default": "middle",
+                  "enum": [
+                    "end",
+                    "middle",
+                    "start"
+                  ],
+                  "type": "string"
+                },
+                "fontSize": {
+                  "description": "Type size of the heading in pixels. The subtitle is set three pixels\nsmaller.",
+                  "default": 15,
+                  "type": "number"
+                },
+                "color": {
+                  "description": "CSS color for the heading. The subtitle is drawn in a lighter gray, which\nthis does not change.",
+                  "default": "#333333",
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "data": {
           "description": "Where the rows come from. Supply exactly one of `url` or `values`; if both\nare present `url` wins.\n\nEvery row is given an `id` field (its index) before layout, so `id` is\nalways available as a grouping key even when the source data has no\nidentifier of its own.",
@@ -751,12 +849,12 @@
               "type": "object",
               "properties": {
                 "isShared": {
-                  "description": "When true, every circle in the chart is drawn at the radius of the\nsmallest one, so mark area never encodes anything accidentally. When\nfalse, each circle is sized against its own container, so marks in\nroomier containers come out bigger.",
+                  "description": "The group a mark is sized against — what its size can be read next to.\n\nTrue is the whole chart: one size, or one value-to-area scale, across\nevery mark drawn. False is the marks sharing a parent container, so each\ngroup is sized against its own contents and sizes compare within a group\nbut not across them. This is the same distinction `Layout.size.isShared`\ndraws one level up.\n\n`max` is the exception, since it is a fact about a single container\nrather than about a group: false sizes each mark against its own\ncontainer, so marks in roomier containers come out bigger, and true\ndraws every mark at the radius of the smallest one.",
                   "default": false,
                   "type": "boolean"
                 },
                 "type": {
-                  "description": "The sizing rule. Use `max`, which inscribes the circle in its container\n(radius = half the container's shorter side). The other values are\nunimplemented and render a radius of 0, i.e. invisible marks.\n\nHow big a unit mark is drawn inside the container the layout gave it.\n\nOnly `max` is implemented: it inscribes the mark in its container. The other\nvalues fall through to a radius of 0, which draws nothing — they are\nplaceholders for size policies the paper describes but this library does not\nimplement yet. Use `max` unless you want the marks hidden.",
+                  "description": "The sizing rule: how much of the room it has each mark takes, and what\nthat says. See `SizePolicies`.\n\nHow big a unit mark is drawn inside the container the layout gave it.\n\nA mark stands for its container, so the three policies below `max` read the\nrows in it and turn what they find into an *area* — the mark's area is\nproportional to the value, which is the only way a circle encodes a number\nhonestly.\n\n- `max` — as large as the container allows: radius is half the container's\n  shorter side, so the mark is inscribed in it. Encodes nothing; this is the\n  default and what a chart of one row per container usually wants.\n- `uniform` — one size for every mark in the sharing group, the largest that\n  fits every container in it. Also encodes nothing, but says so evenly:\n  marks stay the same size where `max` would have them grow with their box.\n- `count` — area proportional to the number of rows in the container.\n- `sum` — area proportional to the sum of `Mark.size.key` over those rows.\n\n`count` and `sum` are scaled so the largest value in the sharing group is\ndrawn at the `uniform` size for that group and everything else is a share of\nit, which keeps every mark inside its container and areas comparable within\nthe group. A container whose value is zero or missing draws nothing.\n\nOver a `flatten` level, where each container holds exactly one row, `count`\nis 1 everywhere and so draws the same chart as `uniform`. Sizing marks by\ndata means a deepest level that groups rather than flattens — one mark per\ngroup, sized by what the group holds, which is Table 2's bubble chart.\n\nSee `Mark.size.isShared` for what the sharing group is.",
                   "enum": [
                     "count",
                     "max",
@@ -765,6 +863,10 @@
                   ],
                   "type": "string",
                   "default": "max"
+                },
+                "key": {
+                  "description": "The numeric field summed by `type: \"sum\"`. Required by that policy —\na `sum` with no key to sum raises rather than drawing empty marks — and\nignored by the other three.",
+                  "type": "string"
                 }
               }
             },

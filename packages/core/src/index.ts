@@ -16,8 +16,8 @@ export {default as treemapMultidimensional} from './treemap.js';
 export {weightedPackRects, weightedPackUnit} from './shelf.js';
 export type {Rect, WeightedPack} from './shelf.js';
 export {fetchData, parseCsv, parseCsvRows} from './data.js';
-export {asRow, isContainer} from './utils.js';
-export {min} from './array.js';
+export {asRow, getMarkValue, isContainer, markSumKey} from './utils.js';
+export {max, min} from './array.js';
 export {
   defaultSetting,
   defaultLayout,
@@ -44,6 +44,7 @@ export type {
   Schemes,
   SizePolicies,
   Spec,
+  Title,
   VisualSpace,
   aspectRatio,
   layoutTypes,

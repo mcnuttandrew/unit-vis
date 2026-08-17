@@ -1,6 +1,7 @@
 [
   "cars_origin_paths.json",
   "cars_origin_text.json",
+  "cars_weight_uniform_marks.json",
   "countries_fertility_by_year.json",
   "countries_life_expect_growth.json",
   "countries_life_expect_histogram.json",
@@ -15,6 +16,7 @@
   "enumerate.json",
   "fluctuation.json",
   "horizontal_unit_column.json",
+  "iowa_energy_bubbles.json",
   "iowa_energy_images.json",
   "maxfill_aspect.json",
   "monarchs_text.json",
@@ -26,6 +28,7 @@
   "penguins_mass_square_pack.json",
   "penguins_mass_sum_by_island.json",
   "penguins_sex_small_multiple.json",
+  "penguins_species_bubbles.json",
   "penguins_species_column.json",
   "seattle_weather_emoji.json",
   "size_sum_notShared.json",

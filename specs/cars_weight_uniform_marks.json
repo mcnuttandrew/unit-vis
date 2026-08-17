@@ -1,0 +1,66 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title": {
+    "text": "Every car, its box sized by weight and its mark not",
+    "subtitle": "Marks are uniform within an origin: one size, the largest that fits that group's tightest box",
+    "orient": "bottom",
+    "anchor": "end",
+    "fontSize": 13
+  },
+  "data": { "url": "data/cars.json" },
+  "width": 720,
+  "height": 420,
+  "padding": { "top": 10, "left": 10, "bottom": 10, "right": 10 },
+  "layouts": [
+    {
+      "name": "origin",
+      "type": "gridxy",
+      "subgroup": { "type": "groupby", "key": "Origin", "isShared": false },
+      "aspect_ratio": "fillX",
+      "size": { "type": "sum", "key": "Weight_in_lbs", "isShared": true },
+      "direction": "LRBT",
+      "align": "LB",
+      "margin": { "top": 4, "left": 4, "bottom": 4, "right": 4 },
+      "padding": { "top": 4, "left": 4, "bottom": 4, "right": 4 },
+      "box": {
+        "fill": "white",
+        "stroke": "black",
+        "stroke-width": 0.5,
+        "opacity": 0.3
+      },
+      "sort": {
+        "key": "Origin",
+        "type": "categorical",
+        "direction": "ascending"
+      }
+    },
+    {
+      "name": "cars",
+      "type": "gridxy",
+      "subgroup": { "type": "flatten" },
+      "aspect_ratio": "square",
+      "size": { "type": "sum", "key": "Weight_in_lbs", "isShared": true },
+      "direction": "LRTB",
+      "align": "LT",
+      "margin": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "padding": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "sort": {
+        "key": "Weight_in_lbs",
+        "type": "numerical",
+        "direction": "descending"
+      }
+    }
+  ],
+  "mark": {
+    "shape": "circle",
+    "color": {
+      "key": "Cylinders",
+      "type": "categorical",
+      "scheme": "schemeSet2"
+    },
+    "size": { "type": "uniform", "isShared": false },
+    "isColorScaleShared": true
+  },
+  "labels": true,
+  "legend": true
+}

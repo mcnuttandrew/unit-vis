@@ -151,27 +151,66 @@ quickest way to see what the d3 backend does with a shape it has never heard of.
 
 The d3 backend (`unit-vis`) draws circles for all of them.
 
-## Labels and legends
+## Mark size
+
+`mark.size.type` decides how much of its container a mark takes, and what that
+size says. A mark stands for the container it is drawn in, so the two data
+policies read the rows in it and turn what they find into an *area*:
+
+| `type`    | the mark is                                              |
+| --------- | -------------------------------------------------------- |
+| `max`     | as large as its own container allows (the default)        |
+| `uniform` | one size for the whole sharing group                      |
+| `count`   | sized by area to the number of rows in the container      |
+| `sum`     | sized by area to the sum of `mark.size.key` over them     |
+
+```js
+"mark": {
+  "shape": "circle",
+  "color": {"key": "source", "type": "categorical"},
+  "size": {"type": "sum", "key": "net_generation", "isShared": true}
+}
+```
+
+`mark.size.isShared` says what group a size can be read next to: `true` is one
+scale across the whole chart, `false` is the marks under one parent container,
+each group sized against its own contents. (`max` is the exception -- it is a
+fact about one container, so unshared means each mark against its own box.)
+`count` and `sum` scale so that the largest value in a group is drawn at that
+group's `uniform` size, which keeps every mark inside its container.
+
+Sizing marks by data wants a deepest level that *groups* rather than flattens:
+one mark per group, sized by what the group holds. Over a `flatten` level every
+container holds one row, so `count` is 1 everywhere and draws the same chart as
+`uniform`. See [penguins_species_bubbles](specs/penguins_species_bubbles.json),
+[iowa_energy_bubbles](specs/iowa_energy_bubbles.json), and
+[cars_weight_uniform_marks](specs/cars_weight_uniform_marks.json).
+
+## Titles, labels and legends
 
 The vega backend can annotate a chart, which is opt-in per spec:
 
 ```js
 {
   // ... the rest of the spec
+  "title": "Palmer penguins by species",             // or {"text": ..., "subtitle": ..., "orient": "bottom"}
   "labels": true,                                    // or {"orient": "left", "layouts": ["species"]}
   "legend": {"orient": "right", "title": "Species"}  // or just true
 }
 ```
 
+`title` is a heading, with an optional `subtitle` under it, drawn against the
+side `orient` names and aligned along it by `anchor`.
+
 `labels` prints each container's group next to its box -- the groupby value, the
 bin range -- and by default labels every layout that names its groups, skipping
 `flatten` levels (whose labels are row numbers). `legend` draws a swatch per
-value of `mark.color.key`, shaped like the marks it stands for. Both sit outside
-the plot area, so the chart keeps the width and height the spec asked for and the
-svg around it grows to fit.
+value of `mark.color.key`, shaped like the marks it stands for. All three sit
+outside the plot area, so the chart keeps the width and height the spec asked
+for and the svg around it grows to fit.
 
-The d3 backend (`unit-vis`) ignores both options and renders the spec exactly as
-it would without them.
+The d3 backend (`unit-vis`) ignores all three options and renders the spec
+exactly as it would without them.
 
 ## Grammar
 

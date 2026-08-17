@@ -63,16 +63,17 @@ export const CORE_SPECS: NamedSpec[] = CORE_SPEC_NAMES.map(name => {
 });
 
 /**
- * A copy of `spec` with `labels` and `legend` off.
+ * A copy of `spec` with `title`, `labels` and `legend` off.
  *
- * The example specs ask for a legend, which only the vega backend draws and
- * which sits outside the plot area. Anything measuring the two backends against
- * each other, or measuring what turning a decoration on does, has to start from
- * a chart with no decorations on it -- otherwise the baseline already carries
- * the thing being tested.
+ * The example specs ask for a title and a legend, which only the vega backend
+ * draws and which sit outside the plot area. Anything measuring the two
+ * backends against each other, or measuring what turning a decoration on does,
+ * has to start from a chart with no decorations on it -- otherwise the baseline
+ * already carries the thing being tested.
  */
 export function withoutDecorations(spec: Spec): Spec {
   const copy = JSON.parse(JSON.stringify(spec)) as Spec;
+  delete copy.title;
   delete copy.labels;
   delete copy.legend;
   return copy;

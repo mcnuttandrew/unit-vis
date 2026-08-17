@@ -19,10 +19,31 @@ export interface Padding {
 /**
  * How big a unit mark is drawn inside the container the layout gave it.
  *
- * Only `max` is implemented: it inscribes the mark in its container. The other
- * values fall through to a radius of 0, which draws nothing — they are
- * placeholders for size policies the paper describes but this library does not
- * implement yet. Use `max` unless you want the marks hidden.
+ * A mark stands for its container, so the three policies below `max` read the
+ * rows in it and turn what they find into an *area* — the mark's area is
+ * proportional to the value, which is the only way a circle encodes a number
+ * honestly.
+ *
+ * - `max` — as large as the container allows: radius is half the container's
+ *   shorter side, so the mark is inscribed in it. Encodes nothing; this is the
+ *   default and what a chart of one row per container usually wants.
+ * - `uniform` — one size for every mark in the sharing group, the largest that
+ *   fits every container in it. Also encodes nothing, but says so evenly:
+ *   marks stay the same size where `max` would have them grow with their box.
+ * - `count` — area proportional to the number of rows in the container.
+ * - `sum` — area proportional to the sum of `Mark.size.key` over those rows.
+ *
+ * `count` and `sum` are scaled so the largest value in the sharing group is
+ * drawn at the `uniform` size for that group and everything else is a share of
+ * it, which keeps every mark inside its container and areas comparable within
+ * the group. A container whose value is zero or missing draws nothing.
+ *
+ * Over a `flatten` level, where each container holds exactly one row, `count`
+ * is 1 everywhere and so draws the same chart as `uniform`. Sizing marks by
+ * data means a deepest level that groups rather than flattens — one mark per
+ * group, sized by what the group holds, which is Table 2's bubble chart.
+ *
+ * See `Mark.size.isShared` for what the sharing group is.
  */
 export type SizePolicies = "uniform" | "count" | "sum" | "max";
 
@@ -148,22 +169,35 @@ export type Mark = {
    */
   size?: {
     /**
-     * When true, every circle in the chart is drawn at the radius of the
-     * smallest one, so mark area never encodes anything accidentally. When
-     * false, each circle is sized against its own container, so marks in
-     * roomier containers come out bigger.
+     * The group a mark is sized against — what its size can be read next to.
+     *
+     * True is the whole chart: one size, or one value-to-area scale, across
+     * every mark drawn. False is the marks sharing a parent container, so each
+     * group is sized against its own contents and sizes compare within a group
+     * but not across them. This is the same distinction `Layout.size.isShared`
+     * draws one level up.
+     *
+     * `max` is the exception, since it is a fact about a single container
+     * rather than about a group: false sizes each mark against its own
+     * container, so marks in roomier containers come out bigger, and true
+     * draws every mark at the radius of the smallest one.
      *
      * @default false
      */
     isShared: boolean;
     /**
-     * The sizing rule. Use `max`, which inscribes the circle in its container
-     * (radius = half the container's shorter side). The other values are
-     * unimplemented and render a radius of 0, i.e. invisible marks.
+     * The sizing rule: how much of the room it has each mark takes, and what
+     * that says. See `SizePolicies`.
      *
      * @default "max"
      */
     type: SizePolicies;
+    /**
+     * The numeric field summed by `type: "sum"`. Required by that policy —
+     * a `sum` with no key to sum raises rather than drawing empty marks — and
+     * ignored by the other three.
+     */
+    key?: string;
   };
 
   /**
@@ -391,6 +425,58 @@ export interface Legend {
 }
 
 /**
+ * A heading for the chart, drawn outside the plotting area on the side it is
+ * oriented to. Like the other decorations it takes room around the canvas
+ * rather than out of it, so adding one grows the rendered svg and leaves the
+ * chart itself exactly `spec.width` by `spec.height`.
+ *
+ * `spec.title` also takes a plain string, which is this with nothing but
+ * `text` set.
+ *
+ * Vega backend only. The old (d3) backend ignores it.
+ */
+export interface Title {
+  /** The heading itself. A title with no text is not drawn. */
+  text: string;
+  /**
+   * A second line under the heading, set smaller and lighter. Use it for the
+   * sentence the title is too short to hold — what the units are, where the
+   * data came from.
+   */
+  subtitle?: string;
+  /**
+   * Which edge of the chart the title sits against. The two vertical sides
+   * read bottom-to-top on the left and top-to-bottom on the right, the way
+   * vega sets them.
+   *
+   * @default "top"
+   */
+  orient?: "top" | "bottom" | "left" | "right";
+  /**
+   * Where along that edge it sits: `start` is the left end of a horizontal
+   * title, `end` the right, and the two ends swap to bottom and top on a
+   * vertical one.
+   *
+   * @default "middle"
+   */
+  anchor?: "start" | "middle" | "end";
+  /**
+   * Type size of the heading in pixels. The subtitle is set three pixels
+   * smaller.
+   *
+   * @default 15
+   */
+  fontSize?: number;
+  /**
+   * CSS color for the heading. The subtitle is drawn in a lighter gray, which
+   * this does not change.
+   *
+   * @default "#333333"
+   */
+  color?: string;
+}
+
+/**
  * A specification of the unit vis grammar.
  *
  * A unit chart is built by repeated subdivision. The whole canvas starts as one
@@ -406,10 +492,12 @@ export interface Legend {
  */
 export interface Spec {
   /**
-   * A name for the chart. Carried through the spec but not currently rendered
-   * by either backend.
+   * A heading drawn above the chart. Pass a string for the usual case, or a
+   * `Title` to set the side, the alignment, the type, or a subtitle.
+   *
+   * Drawn by the vega backend only; the old backend ignores it.
    */
-  title?: string;
+  title?: string | Title;
 
   /**
    * Where the rows come from. Supply exactly one of `url` or `values`; if both

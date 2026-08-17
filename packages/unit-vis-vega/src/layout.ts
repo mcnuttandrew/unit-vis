@@ -57,6 +57,12 @@ const ALIGN_Y: {[align: string]: Anchor} = {
 export const ROWS_BY_ID = '__rowsById';
 export const RAW_ROWS = '__rawRows';
 export const levelName = (depth: number): string => `level${depth}`;
+/**
+ * The rows as level `depth` sees them: every row, carrying the composite key
+ * `ck${depth}` of the container it landed in. Aggregating this by that key is
+ * how anything downstream of the layout reads a level's containers by content.
+ */
+export const levelRowsName = (depth: number): string => `__rows${depth}`;
 
 /** `getValue`: what one container contributes to its level's unit length. */
 function valueExpr(layout: Layout): string {
@@ -126,7 +132,7 @@ function ratioExpr(layout: Layout): string {
  * Expressions are unaffected: they index with `datum[...]` and take the name
  * whole.
  */
-function fieldRef(field: string): string {
+export function fieldRef(field: string): string {
   return field.replace(/([.[\]\\])/g, '\\$1');
 }
 

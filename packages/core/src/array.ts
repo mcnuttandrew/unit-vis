@@ -50,6 +50,18 @@ export function min<T>(items: Iterable<T>, accessor: (item: T) => number): numbe
   return smallest;
 }
 
+/** Largest value of the accessor, or `undefined` when nothing comparable was seen. */
+export function max<T>(items: Iterable<T>, accessor: (item: T) => number): number | undefined {
+  let largest: number | undefined;
+  for (const item of items) {
+    const value = accessor(item);
+    if (value != null && (largest === undefined ? value >= value : largest < value)) {
+      largest = value;
+    }
+  }
+  return largest;
+}
+
 /** Index of the smallest value of the accessor, or -1 if there is none. */
 export function minIndex<T>(items: Iterable<T>, accessor: (item: T) => number): number {
   let smallest: number | undefined;

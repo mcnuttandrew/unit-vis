@@ -1,0 +1,60 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title": {
+    "text": "Iowa's electricity, by source and year",
+    "subtitle": "Mark area is net generation, on one scale across the whole chart",
+    "fontSize": 16
+  },
+  "data": { "url": "data/iowa-electricity.csv" },
+  "width": 720,
+  "height": 260,
+  "padding": { "top": 10, "left": 10, "bottom": 10, "right": 10 },
+  "layouts": [
+    {
+      "name": "source",
+      "type": "gridxy",
+      "subgroup": { "type": "groupby", "key": "source", "isShared": false },
+      "aspect_ratio": "fillY",
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "TB",
+      "align": "LT",
+      "margin": { "top": 2, "left": 2, "bottom": 2, "right": 2 },
+      "padding": { "top": 2, "left": 2, "bottom": 2, "right": 2 },
+      "box": {
+        "fill": "none",
+        "stroke": "black",
+        "stroke-width": 0.5,
+        "opacity": 0.3
+      }
+    },
+    {
+      "name": "year",
+      "type": "gridxy",
+      "subgroup": { "type": "groupby", "key": "year", "isShared": true },
+      "aspect_ratio": "fillX",
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "LRBT",
+      "align": "LB",
+      "margin": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "padding": { "top": 0, "left": 0, "bottom": 0, "right": 0 },
+      "box": {
+        "fill": "white",
+        "stroke": "gray",
+        "stroke-width": 0.25,
+        "opacity": 0.2
+      }
+    }
+  ],
+  "mark": {
+    "shape": "circle",
+    "color": {
+      "key": "source",
+      "type": "categorical",
+      "scheme": "schemeDark2"
+    },
+    "size": { "type": "sum", "key": "net_generation", "isShared": true },
+    "isColorScaleShared": true
+  },
+  "labels": true,
+  "legend": true
+}

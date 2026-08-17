@@ -51,6 +51,17 @@ async function render(specName: string, sampleSize?: number): Promise<Rendered> 
   };
 }
 
+/**
+ * Whether the spec's deepest level gives every row a container of its own, so
+ * that the chart has one unit mark per row. A spec with no layouts at all has
+ * one container -- the canvas -- and so one mark for the whole dataset.
+ */
+function flattensRows(specName: string): boolean {
+  const layouts = PARITY_SPECS.find(s => s.name === specName)!.spec.layouts;
+  const deepest = layouts[layouts.length - 1];
+  return Boolean(deepest && deepest.subgroup && deepest.subgroup.type === 'flatten');
+}
+
 const rendered = new Map<string, Rendered>();
 
 beforeAll(async () => {
@@ -85,10 +96,17 @@ describe.each(SPECS.map(s => s.name))('%s', specName => {
   /** Assert, unless this exact check is a registered known difference. */
   const parity = (check: string, assertion: () => void): void => checkParity(specName, check, assertion);
 
-  it('draws one unit mark per data row in both backends', () => {
-    parity('draws one unit mark per data row in both backends', () => {
-      expect(get().old.units.length, message()).toBe(get().rows);
-      expect(get().vega.units.length, message()).toBe(get().rows);
+  it('draws the same unit marks in both backends', () => {
+    parity('draws the same unit marks in both backends', () => {
+      expect(get().vega.units.length, message()).toBe(get().old.units.length);
+      // One mark per row is a property of the deepest level rather than of the
+      // grammar: a level that flattens gives every row a container of its own,
+      // while one that groups draws a mark per group -- which is what a mark
+      // sized by `count` or `sum` is for. Only the first can be held to the
+      // row count.
+      if (flattensRows(specName)) {
+        expect(get().old.units.length, message()).toBe(get().rows);
+      }
     });
   });
 

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title": {
+    "text": "How many penguins of each species",
+    "subtitle": "One mark per species, its area the number of birds counted",
+    "anchor": "start"
+  },
+  "data": { "url": "data/penguins.csv" },
+  "width": 600,
+  "height": 300,
+  "padding": { "top": 10, "left": 10, "bottom": 10, "right": 10 },
+  "layouts": [
+    {
+      "name": "species",
+      "type": "gridxy",
+      "subgroup": { "type": "groupby", "key": "species", "isShared": false },
+      "aspect_ratio": "fillX",
+      "size": { "type": "uniform", "isShared": true },
+      "direction": "LRBT",
+      "align": "LB",
+      "margin": { "top": 5, "left": 5, "bottom": 5, "right": 5 },
+      "padding": { "top": 5, "left": 5, "bottom": 5, "right": 5 },
+      "box": {
+        "fill": "white",
+        "stroke": "black",
+        "stroke-width": 0.5,
+        "opacity": 0.3
+      },
+      "sort": {
+        "key": "species",
+        "type": "categorical",
+        "direction": "ascending"
+      }
+    }
+  ],
+  "mark": {
+    "shape": "circle",
+    "color": { "key": "species", "type": "categorical" },
+    "size": { "type": "count", "isShared": true },
+    "isColorScaleShared": true
+  },
+  "labels": true,
+  "legend": true
+}

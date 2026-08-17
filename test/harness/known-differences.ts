@@ -18,20 +18,14 @@ export interface KnownDifference {
 }
 
 export const KNOWN_DIFFERENCES: KnownDifference[] = [
-  {
-    spec: 'enumerate',
-    check: 'draws one unit mark per data row in both backends',
-    reason:
-      'The spec has an empty `layouts` array, so the container tree is one node deep and both backends draw a ' +
-      'single mark for the whole dataset. A pre-existing quirk of the layout engine, not of either renderer.',
-  },
   ...['titanic_spec1', 'titanic_spec2'].map(spec => ({
     spec,
     check: 'draws a visible chart in both backends',
     reason:
       'Every unit mark comes out with no extent, so these two specs render an empty chart in *both* backends: ' +
-      '`calcRadiusIsolated` returns a negative radius, which the old backend writes as `<circle r="-16.4">` ' +
-      '(svg refuses to draw it) and vega clamps to 0. A layout/mark-size bug that predates the port.',
+      'the layout hands the marks containers of negative size, so `inscribedRadius` is negative too, which the ' +
+      'old backend writes as `<circle r="-16.4">` (svg refuses to draw it) and vega clamps to 0. A layout bug ' +
+      'that predates the port.',
   })),
 ];
 

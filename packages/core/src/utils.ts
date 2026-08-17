@@ -8,6 +8,7 @@ import type {
   Direction,
   EdgeInfo,
   Layout,
+  Mark,
   VisualSpace,
 } from "./types.js";
 
@@ -95,6 +96,46 @@ export function getValue(container: Container, layout: Layout): number {
       return 1;
   }
 }
+/**
+ * The field a `sum` policy sums, or a raised error naming what is missing.
+ *
+ * A `sum` with nothing to sum used to be a chart of invisible marks, which is
+ * the failure mode this whole family of policies had. Raising says it once,
+ * where the spec is wrong, rather than leaving it to be discovered on a blank
+ * canvas.
+ */
+export function markSumKey(mark: Mark): string {
+  const key = mark.size && mark.size.key;
+  if (typeof key !== "string" || !key) {
+    throw new Error(
+      'unit-vis: mark size "sum" needs a `key` naming the field to sum, ' +
+        `got ${JSON.stringify(key)}`,
+    );
+  }
+  return key;
+}
+
+/**
+ * What one unit mark's area is proportional to, under `mark.size.type` — the
+ * mark-level counterpart of `getValue`, read over the rows of the container the
+ * mark stands for.
+ *
+ * `max` has no value of its own: it is the room the container has rather than
+ * anything in it, and comes out as 1 here so that it and `uniform` size alike.
+ */
+export function getMarkValue(container: Container, mark: Mark): number {
+  switch (mark.size && mark.size.type) {
+    case "sum": {
+      const key = markSumKey(mark);
+      return sum(container.contents, (d) => Number(asRow(d)[key]));
+    }
+    case "count":
+      return container.contents.length;
+    default:
+      return 1;
+  }
+}
+
 export function getUnit(
   availableSpace: number,
   childContainers: Container[],

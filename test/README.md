@@ -74,6 +74,15 @@ in `buildVegaSpec`. **Renaming those marks will break the harness** — update
 - `color-scheme.test.ts` — `mark.color.scheme`, which no bundled spec sets. Specs name schemes the d3 way (`schemeDark2`) and vega's registry uses
   the bare name, so `buildVegaSpec` translates; this pins the palettes both
   backends land on, including the one case where the two registries disagree.
+- `mark-size.test.ts` — the four `mark.size` policies, on a chart whose deepest
+  level groups rather than flattens so that a mark's area has something to say.
+  What is pinned is what the area means (proportional to the value, not the
+  radius), that a mark never outgrows its container, what group each policy is
+  sized against, and that both backends land on the same radii — one computing
+  them in a dataflow and one in JS.
+- `title.test.ts` — `spec.title`, the third decoration: what it draws, where it
+  sits, and that the chart underneath is untouched but for the room the title
+  took beside it.
 - `mark-shapes.test.ts` — the `emoji`, `text`, `path` and `image` mark shapes,
   which only the vega backend draws: what each one draws (literal, field, or
   mapped field), that all four sit in the box a circle would have taken, that
