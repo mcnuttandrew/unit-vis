@@ -6,7 +6,7 @@ import Editor from "./Editor";
 import type { Spec } from "@unit-vis/core";
 import { classnames } from "./utils";
 import { useHashRoute } from "./use-hash-route";
-import { Check, Copy, Github, Paper, Warning } from "./icons";
+import { Github, Warning } from "./icons";
 
 const defaultSpec = options.find(({ name }) => name === defaultSpecName)!;
 
