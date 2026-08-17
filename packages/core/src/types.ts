@@ -54,6 +54,55 @@ export type Schemes =
   | "schemeTableau10";
 
 /**
+ * What a mark draws, for the shapes that need to be told: the glyph of an
+ * `emoji` mark, the outline of a `path` mark, the string of a `text` mark, the
+ * source of an `image` mark.
+ *
+ * A plain string is that content, the same on every unit. An object reads it
+ * off the row instead, and `domain`/`range` make that read a scale — the same
+ * pair, with the same meaning, that a vega scale takes:
+ *
+ * - `{key}` alone draws the field's own value, which is what a `text` mark
+ *   usually wants: one row, its own label.
+ * - `{key, range}` draws the range instead, handing its entries out to the
+ *   field's values in first-seen order and repeating when it runs short.
+ * - `{key, domain, range}` pairs the two by position, so a value is drawn with
+ *   whatever sits at the same index of `range`:
+ *   `{"key": "species", "domain": ["Adelie", "Gentoo"], "range": ["🐧", "🐦"]}`.
+ * - `default` covers a value the `domain` does not list. Without one, such a
+ *   row draws nothing.
+ *
+ * Vega backend only.
+ */
+export type MarkContent =
+  | string
+  | {
+      /** The data field to read. */
+      key: string;
+      /**
+       * The values of `key` that `range` pairs with, in order.
+       *
+       * Leave it out and the values are taken in the order they first appear,
+       * exactly as a vega scale builds its own domain. Only read alongside
+       * `range` — there is nothing to pair a domain with otherwise.
+       */
+      domain?: string[];
+      /**
+       * What to draw, one entry per entry of `domain`.
+       *
+       * Shorter than the domain and it repeats, the way an ordinal scale's
+       * range does. Leave it out and the field's own value is drawn.
+       */
+      range?: string[];
+      /**
+       * Content for a row whose value `domain` does not list. Only meaningful
+       * alongside an explicit `domain`: without one every value is inside the
+       * domain by construction.
+       */
+      default?: string;
+    };
+
+/**
  * How each data row is drawn once the layouts have decided where it goes.
  *
  * The layouts own position and space; the mark owns shape, size within that
@@ -94,8 +143,8 @@ export type Mark = {
   };
 
   /**
-   * How large the mark is drawn inside its container. Only affects `circle`
-   * marks — a `rect` mark always fills its container exactly.
+   * How large the mark is drawn inside its container. Read by every shape but
+   * `rect`, which always fills its container exactly.
    */
   size?: {
     /**
@@ -123,9 +172,78 @@ export type Mark = {
    * - `circle` — inscribed in its container, sized by `mark.size`
    * - `rect` — fills its container exactly, ignoring `mark.size`
    *
+   * The rest are drawn by the vega backend only, and each is told what to draw
+   * by the `mark` field of the same name. Set the shape without setting that
+   * field and there is nothing to draw, so the marks fall back to circles.
+   * All four sit in the same box a `circle` would take — centered on the
+   * container and sized by `mark.size` — so switching between them moves
+   * nothing but the shape.
+   *
+   * - `emoji` — the glyph named by `mark.emoji`, drawn as text one container
+   *   across. Keeps the font's own colors rather than taking `mark.color`.
+   * - `text` — the string named by `mark.text`, shrunk to fit its container
+   *   unless `mark.fontSize` says otherwise.
+   * - `path` — the outline named by `mark.path`, an SVG path drawn in the box
+   *   from (-1, -1) to (1, 1) and scaled to the container.
+   * - `image` — the picture named by `mark.image`, fit inside the container
+   *   with its aspect ratio kept.
+   *
    * @default "circle"
    */
-  shape?: "circle" | "rect";
+  shape?: "circle" | "rect" | "emoji" | "text" | "path" | "image";
+
+  /**
+   * The glyph a `shape: "emoji"` mark draws — `"🐧"` for the same one
+   * everywhere, or `{"key": "species", "range": [...]}` for one per category.
+   *
+   * Vega backend only.
+   */
+  emoji?: MarkContent;
+
+  /**
+   * The string a `shape: "text"` mark draws. Usually `{"key": "name"}`, i.e.
+   * each unit labelled with its own value of a field.
+   *
+   * Text is set at whatever size keeps it inside its container, which is a
+   * per-string, per-container decision — so turn on `mark.size.isShared` to
+   * have every string set at one size, the one that fits everywhere.
+   *
+   * Vega backend only.
+   */
+  text?: MarkContent;
+
+  /**
+   * The outline a `shape: "path"` mark draws, as an SVG path string.
+   *
+   * The path is read in a square box running from (-1, -1) to (1, 1) with the
+   * origin at the mark's center, and scaled so that box is the container's
+   * inscribed square. `"M0,-1L1,1L-1,1Z"` is a triangle filling the container.
+   * Takes `mark.color` like a circle does.
+   *
+   * Vega backend only.
+   */
+  path?: MarkContent;
+
+  /**
+   * The picture a `shape: "image"` mark draws, as a url or a data uri. The
+   * image is fit inside the container's inscribed square with its aspect ratio
+   * kept, so a non-square picture is letterboxed rather than stretched.
+   *
+   * Vega backend only.
+   */
+  image?: MarkContent;
+
+  /**
+   * Type size in pixels for `emoji` and `text` marks.
+   *
+   * Left unset, an emoji is drawn one container across and text is shrunk to
+   * whatever size keeps the string inside its container. Set it and the marks
+   * are drawn at that size whatever their container, which is what makes a
+   * chart of text legible at the cost of letting long strings overlap.
+   *
+   * Vega backend only.
+   */
+  fontSize?: number;
 
   /**
    * Reserved. Present in most bundled example specs and in the library

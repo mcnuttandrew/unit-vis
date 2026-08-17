@@ -1,0 +1,50 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title"  : "Cars by origin, with the cylinder count drawn as a custom path",
+  "data"   : {"url": "data/cars.json"},
+  "width"  : 720,
+  "height" : 420,
+  "padding": {"top": 10, "left": 10, "bottom": 20, "right": 10},
+  "layouts": [
+    {
+      "name"        : "origin",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "groupby", "key": "Origin", "isShared": false},
+      "aspect_ratio": "fillX",
+      "size"        : {"type": "count", "isShared": true},
+      "direction"   : "LRBT",
+      "align"       : "LB",
+      "margin"      : {"top": 5, "left": 5, "bottom": 5, "right": 5},
+      "padding"     : {"top": 5, "left": 5, "bottom": 5, "right": 5},
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.3},
+      "sort"        : {"key": "Origin", "type": "categorical", "direction": "ascending"}
+    },
+    {
+      "name"        : "cars",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "flatten"},
+      "aspect_ratio": "maxfill",
+      "size"        : {"type": "uniform", "isShared": true},
+      "direction"   : "LRBT",
+      "align"       : "LB",
+      "sort"        : {"key": "Cylinders", "type": "numerical", "direction": "ascending"}
+    }
+  ],
+  "mark"   : {
+    "shape": "path",
+    "path" : {
+      "key"    : "Cylinders",
+      "domain" : ["4", "6", "8"],
+      "range"  : [
+        "M0,-1L0.95,0.7L-0.95,0.7Z",
+        "M0,-1L1,0L0,1L-1,0Z",
+        "M-0.3,-1L0.3,-1L0.3,-0.3L1,-0.3L1,0.3L0.3,0.3L0.3,1L-0.3,1L-0.3,0.3L-1,0.3L-1,-0.3L-0.3,-0.3Z"
+      ],
+      "default": "M-0.8,-0.8L0.8,-0.8L0.8,0.8L-0.8,0.8Z"
+    },
+    "color": {"key": "Cylinders", "type": "categorical", "scheme": "schemeDark2"},
+    "size" : {"type": "max", "isShared": true}
+  },
+  "labels" : true,
+  "legend" : true
+}

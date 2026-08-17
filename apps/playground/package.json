@@ -22,7 +22,8 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "unit-vis": "0.1.0",
-    "unit-vis-vega": "0.1.0"
+    "unit-vis-vega": "0.1.0",
+    "vega-datasets": "^3.2.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

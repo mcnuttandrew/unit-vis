@@ -14,7 +14,7 @@ import {compare, formatComparison, type ComparisonReport} from './harness/compar
 import {checkParity, KNOWN_LAYOUT_FAILURES} from './harness/known-differences';
 import {buildSceneForSpec, renderOld, renderVegaHeadless} from './harness/render';
 import {modelFromOldSvg, modelFromVegaSvg, type SvgModel} from './harness/svg-model';
-import {ALL_SPECS, withoutDecorations} from './harness/specs';
+import {PARITY_SPECS, withoutDecorations} from './harness/specs';
 
 /** Rows per spec: enough to exercise every layout branch, few enough to be quick. */
 const SAMPLE_SIZE = 120;
@@ -26,7 +26,7 @@ const SAMPLE_SIZE = 120;
  */
 const POSITION_TOLERANCE = 0.5;
 
-const SPECS = ALL_SPECS.filter(s => !(s.name in KNOWN_LAYOUT_FAILURES));
+const SPECS = PARITY_SPECS.filter(s => !(s.name in KNOWN_LAYOUT_FAILURES));
 
 interface Rendered {
   old: SvgModel;
@@ -36,7 +36,7 @@ interface Rendered {
 }
 
 async function render(specName: string, sampleSize?: number): Promise<Rendered> {
-  const entry = ALL_SPECS.find(s => s.name === specName)!;
+  const entry = PARITY_SPECS.find(s => s.name === specName)!;
   // Decorations off on both sides: the old backend draws neither, so a spec
   // that asks for a legend would be measured against a canvas the legend grew.
   // What is being compared is the chart, which the decorations do not move.
@@ -67,7 +67,7 @@ describe('the layout engine', () => {
   it('still fails only on the specs it is known to fail on', () => {
     const stillFailing = Object.keys(KNOWN_LAYOUT_FAILURES).filter(name => {
       try {
-        buildSceneForSpec(ALL_SPECS.find(s => s.name === name)!.spec, SAMPLE_SIZE);
+        buildSceneForSpec(PARITY_SPECS.find(s => s.name === name)!.spec, SAMPLE_SIZE);
         return false;
       } catch {
         return true;

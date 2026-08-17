@@ -25,6 +25,61 @@ interface Props {
   code: string;
 }
 
+/**
+ * Only what it takes to seat CodeMirror in the surrounding paper: its own
+ * defaults draw a white slab with a gray gutter and a blue active line, none of
+ * which belong to this palette. Colors track the tokens in index.css.
+ */
+const editorTheme = EditorView.theme({
+  '&': {
+    color: 'var(--ink)',
+    backgroundColor: 'var(--panel)',
+    fontSize: '12.5px',
+  },
+  '.cm-content': {
+    fontFamily: 'var(--font-mono)',
+    padding: '10px 0',
+    caretColor: 'var(--accent)',
+  },
+  '.cm-gutters': {
+    backgroundColor: 'var(--panel)',
+    color: '#b8b5a6',
+    border: 'none',
+    fontFamily: 'var(--font-mono)',
+    fontSize: '11px',
+  },
+  '.cm-lineNumbers .cm-gutterElement': {padding: '0 8px 0 12px'},
+  '.cm-activeLine': {backgroundColor: '#faf9f4'},
+  '.cm-activeLineGutter': {backgroundColor: '#faf9f4', color: 'var(--ink-3)'},
+  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
+    backgroundColor: 'var(--accent-wash)',
+  },
+  '&.cm-focused': {outline: 'none'},
+  '&.cm-focused .cm-cursor': {borderLeftColor: 'var(--accent)'},
+  '.cm-foldPlaceholder': {
+    backgroundColor: '#efedE4',
+    border: '1px solid var(--rule-2)',
+    color: 'var(--ink-3)',
+  },
+  '.cm-tooltip': {
+    border: '1px solid var(--rule-2)',
+    borderRadius: '5px',
+    backgroundColor: 'var(--panel)',
+    boxShadow: '0 6px 18px -10px rgba(22, 21, 15, 0.45)',
+    fontFamily: 'var(--font-ui)',
+    fontSize: '12.5px',
+  },
+  '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+    backgroundColor: 'var(--accent-wash)',
+    color: 'var(--ink)',
+  },
+  '.cm-panels': {
+    backgroundColor: 'var(--panel)',
+    color: 'var(--ink)',
+    borderColor: 'var(--rule)',
+  },
+});
+
 export default function Editor(props: Props): JSX.Element {
   const {onChange, code} = props;
   const cmParent = useRef<HTMLDivElement | null>(null);
@@ -61,6 +116,7 @@ export default function Editor(props: Props): JSX.Element {
         doc: code,
         extensions: [
           basicSetup,
+          editorTheme,
           json(),
           linter(jsonParseLinter(), {
             // default is 750ms

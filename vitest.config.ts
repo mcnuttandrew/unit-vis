@@ -28,12 +28,5 @@ export default defineConfig({
     // Vega dataflow over the full titanic set is not fast.
     testTimeout: 60000,
     hookTimeout: 60000,
-    server: {
-      deps: {
-        // Ships extensionless ESM imports ("./features/completion"), which
-        // vite's resolver handles for the browser but node's does not.
-        inline: ['codemirror-json-schema'],
-      },
-    },
   },
 });

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Renewables</title>
+  <path d="M30 26h4l2 34h-8z" fill="#8a9099"/>
+  <g fill="#3f9c6d" transform="translate(32 26)">
+    <path d="M0 0 -5 -23 5 -23z"/>
+    <path d="M0 0 -5 -23 5 -23z" transform="rotate(120)"/>
+    <path d="M0 0 -5 -23 5 -23z" transform="rotate(240)"/>
+  </g>
+  <circle cx="32" cy="26" r="4" fill="#2f7a55"/>
+</svg>

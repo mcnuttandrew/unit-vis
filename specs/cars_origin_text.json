@@ -1,0 +1,29 @@
+{
+  "$schema": "https://unit-vis.netlify.com/assets/unit-vis-schema.json",
+  "title"  : "Every car, spelling out where it was built",
+  "data"   : {"url": "data/cars.json"},
+  "width"  : 720,
+  "height" : 420,
+  "padding": {"top": 10, "left": 10, "bottom": 10, "right": 10},
+  "layouts": [
+    {
+      "name"        : "cars",
+      "type"        : "gridxy",
+      "subgroup"    : {"type": "flatten"},
+      "aspect_ratio": "maxfill",
+      "size"        : {"type": "uniform", "isShared": true},
+      "direction"   : "LRTB",
+      "align"       : "LB",
+      "box"         : {"fill": "white", "stroke": "black", "stroke-width": 0.5, "opacity": 0.2},
+      "sort"        : {"key": "Origin", "type": "categorical", "direction": "ascending"}
+    }
+  ],
+  "mark"   : {
+    "shape": "text",
+    "text" : {"key": "Origin"},
+    "color": {"key": "Origin", "type": "categorical", "scheme": "schemeDark2"},
+    "size" : {"type": "max", "isShared": true}
+  },
+  "labels" : false,
+  "legend" : true
+}

@@ -27,7 +27,7 @@ async function main() {
   const allSpecs = JSON.parse(readFileSync("apps/playground/public/specs.json", "utf-8"));
 
   for (const spec of allSpecs) {
-    const specFilePath = `apps/playground/src/specs/${spec}`;
+    const specFilePath = `specs/${spec}`;
     const specFileContent = readFileSync(specFilePath, "utf-8");
     // const specJson = JSON.parse(specFileContent);
     const compressed = formatter.Reformat(specFileContent);

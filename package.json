@@ -21,7 +21,8 @@
     "report:svg": "vite-node scripts/svg-report.ts",
     "specs:list": "vite-node scripts/regenerate-spec-list.ts",
     "specs:compress": "vite-node scripts/compress-specs.ts",
-    "specs:json": "vite-node scripts/specs-to-json.ts"
+    "specs:json": "vite-node scripts/specs-to-json.ts",
+    "data:sync": "vite-node scripts/sync-datasets.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

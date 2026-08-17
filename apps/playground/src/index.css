@@ -1,10 +1,46 @@
+/* ---------------------------------------------------------------------------
+   Tokens. Warm paper neutrals, hairline rules, and exactly one accent -- the
+   purple from the mark in public/favicon.svg -- spent only on selection and
+   links. Flat by default: no gradients, no glows.
+   ------------------------------------------------------------------------ */
+:root {
+  --accent: #7a1fe0;
+  --accent-dark: #5e14b0;
+  --accent-wash: #f4eeff;
+
+  --ink: #16150f;
+  --ink-2: #45443c;
+  --ink-3: #767468;
+  --ink-4: #9b998c;
+
+  --paper: #f4f3ee;
+  --panel: #fffefb;
+  --rule: #e0ded4;
+  --rule-2: #cecbbe;
+
+  --red: #a41f2e;
+  --red-wash: #fdf2f1;
+
+  --radius: 5px;
+
+  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, sfmono-regular, 'SF Mono', menlo, consolas, monospace;
+}
+
 html,
 body {
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: 'Quicksand', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 #root,
@@ -27,17 +63,86 @@ body {
   flex-direction: column;
 }
 
+/* Small caps mono, used for every label that names a thing rather than says
+   something. Keeps the chrome quiet next to the charts. */
+.label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ------------------------------------------------------------------ header */
+
 .header {
-  background: black;
-  color: white;
-  padding: 5px 20px;
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  height: 52px;
+  padding: 0 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+}
+
+.header__logo {
+  width: 22px;
+  height: 21px;
+  display: block;
 }
 
 .header h1 {
-  font-size: 24px;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
   margin: 0;
+  white-space: nowrap;
 }
+
+.header__rule {
+  width: 1px;
+  height: 18px;
+  background: var(--rule-2);
+  margin: 0 4px;
+}
+
+.header__tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.header__spacer {
+  flex: 1;
+}
+
+.header__links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.header__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: var(--radius);
+  color: var(--ink-2);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.header__link:hover {
+  background: #eeece4;
+  color: var(--ink);
+}
+
+/* -------------------------------------------------------------- main split */
 
 /* The header is a fixed-height band; the panes below it split whatever
    remains, which is what lets the editor and chart columns scroll
@@ -49,20 +154,218 @@ body {
 
 .left-column {
   position: relative;
-  width: 1300px;
-  min-width: 300px;
-  border-right: 1px solid #ddd;
+  width: 42%;
+  min-width: 320px;
+  background: var(--panel);
 }
 
-.default-chooser {
-  background: lightgray;
+/* A hairline with a wider invisible hit area, so the gutter stays 1px wide but
+   is still easy to grab. */
+.splitter {
+  flex: 0 0 1px;
+  cursor: col-resize;
+  background: var(--rule);
+  position: relative;
+}
+
+.splitter::after {
+  content: '';
+  position: absolute;
+  inset: 0 -4px;
+}
+
+.splitter:hover,
+.splitter:active {
+  background: var(--accent);
+}
+
+/* While dragging, the pointer owns the window; otherwise the gesture selects
+   text across both panes. */
+body.is-resizing {
+  cursor: col-resize;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ----------------------------------------------------------------- toolbars */
+
+.toolbar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  /* height: 100px; */
-  padding: 20px 0;
+  gap: 9px;
   flex-shrink: 0;
+  height: 44px;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--panel);
 }
+
+.select-shell {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.select-shell__icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--ink-4);
+  pointer-events: none;
+}
+
+.combo-input {
+  width: 100%;
+  height: 28px;
+  padding: 0 9px 0 27px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.combo-input::placeholder {
+  color: var(--ink-4);
+}
+
+.combo-input:hover {
+  border-color: var(--ink-4);
+}
+
+.combo-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.select-shell:focus-within .select-shell__icon {
+  color: var(--accent);
+}
+
+/* Hangs off the toolbar over the editor, so the list can be long enough to be
+   worth scrolling without the toolbar growing. */
+.combo-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: min(52vh, 420px);
+  overflow: auto;
+  margin: 0;
+  padding: 3px;
+  list-style: none;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: 0 12px 28px -16px rgb(22 21 15 / 55%);
+}
+
+.combo-option {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combo-option.is-current {
+  color: var(--accent-dark);
+}
+
+.combo-option.is-active {
+  background: var(--accent-wash);
+}
+
+/* The matched characters, not a highlighter pen. */
+.combo-option mark {
+  background: none;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.combo-option.is-current mark {
+  color: var(--accent-dark);
+}
+
+.combo-empty {
+  padding: 5px 8px;
+  color: var(--ink-4);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.counter {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Prev/next read as one control, so they share a border rather than each
+   carrying their own. */
+.button-group {
+  display: flex;
+}
+
+.button-group .icon-button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.button-group .icon-button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin-left: -1px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 7px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink-2);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: #f0eee6;
+  color: var(--ink);
+  position: relative;
+}
+
+.icon-button:active {
+  background: #e7e4da;
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.icon-button.is-done {
+  color: var(--accent);
+  border-color: var(--accent);
+  position: relative;
+}
+
+/* ------------------------------------------------------------------- editor */
 
 .editor-host {
   flex: 1;
@@ -78,104 +381,181 @@ body {
 
 .editor-host .cm-scroller {
   overflow: auto;
-  font-size: 13px;
-}
-
-.right-column {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-width: 0;
-  overflow-y: auto;
-}
-
-.chart-panel-controls {
-  align-items: center;
-  flex-direction: row-reverse;
-  display: flex;
-  height: 50px;
-  padding-right: 30px;
-  width: 100%;
-  flex-shrink: 0;
-}
-
-.chart-option {
-  cursor: pointer;
-  margin-right: 20px;
-}
-
-.selected-chart-option {
-  text-decoration: underline;
-}
-
-.chart-container {
-  gap: 20px;
-  padding: 20px;
-}
-
-.chart-container > .flex-down > span {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #666;
-  margin-bottom: 5px;
-}
-
-.about-container {
-  padding: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-}
-
-.about-container p {
-  max-width: 600px;
-}
-
-select {
-  background-color: rgba(0, 0, 0, 0);
-  border: 0;
-  color: #444;
-  display: flex;
-  font-weight: 700;
-  margin: 0;
-  text-transform: uppercase;
-  text-align-last: right;
-  width: 100%;
-}
-
-select::-ms-expand {
-  display: none;
-}
-
-select:focus {
-  border-color: #aaa;
-  color: #222;
-  outline: none;
-}
-
-select option {
-  font-weight: normal;
-  text-transform: none;
 }
 
 /* Overlays the editor rather than displacing it, so a transient parse error
    mid-keystroke does not make the whole editor jump. */
 .error-bar {
-  background: red;
-  color: white;
-  font-size: 14px;
-  font-weight: bold;
-  min-height: 50px;
-  padding: 5px 20px;
-  box-sizing: border-box;
   position: absolute;
-  bottom: 0;
   z-index: 2;
-  width: 100%;
+  inset: auto 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid #e8ccc8;
+  background: var(--red-wash);
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.error-bar svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ------------------------------------------------------------- right column */
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: var(--paper);
+}
+
+.chart-panel-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--panel);
+}
+
+/* Underlined tabs rather than a pill switch: the rule they sit on is already
+   there, so the selected one just claims a piece of it. */
+.chart-option {
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
+  padding: 0 12px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-3);
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.chart-option:hover {
+  color: var(--ink);
+}
+
+.selected-chart-option,
+.selected-chart-option:hover {
+  border-bottom-color: var(--accent);
+  color: var(--ink);
+  font-weight: 550;
+}
+
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* -------------------------------------------------------------- chart cards */
+
+/* Cards hug their chart rather than stretching: a unit chart has a size of its
+   own, and a card wider than the picture in it just reads as a leak. */
+.chart-container {
+  gap: 14px;
+  padding: 14px;
+  align-items: flex-start;
+}
+
+.backend-card {
+  max-width: 100%;
+  min-width: 240px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.backend-card__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.backend-card__pkg {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-4);
+}
+
+.backend-card__body {
+  padding: 14px;
+  overflow: auto;
+}
+
+.empty-note {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-4);
+}
+
+/* -------------------------------------------------------------------- about */
+
+.about-container {
+  max-width: 62ch;
+  padding: 44px 28px 72px;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.about-container h1 {
+  margin: 0 0 4px;
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.about-container h2 {
+  margin: 30px 0 8px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.about-lede {
+  margin: 0 0 26px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-3);
+}
+
+.about-container p {
+  margin: 0 0 14px;
+}
+
+.about-container code {
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: #f7f6f1;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.about-container a {
+  color: var(--accent-dark);
+  text-decoration-color: #cbb4ee;
+  text-underline-offset: 2px;
+}
+
+.about-container a:hover {
+  text-decoration-color: var(--accent);
 }

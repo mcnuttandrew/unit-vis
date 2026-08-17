@@ -2,7 +2,7 @@
  * Color schemes are named in specs the d3 way (`schemeDark2`), which is what
  * the old backend feeds to `d3-scale-chromatic`. Vega's scheme registry uses
  * the bare name (`dark2`), so `buildVegaSpec` translates and then lets vega
- * resolve the palette. The specs in `src/specs` only name schemes the two
+ * resolve the palette. The specs in `specs/` only name schemes the two
  * registries agree on -- `schemeTableau10` is not one of them -- so the
  * translation itself is covered here rather than there.
  */

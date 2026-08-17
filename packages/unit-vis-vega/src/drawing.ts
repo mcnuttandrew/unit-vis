@@ -3,13 +3,22 @@ import type {
   Data as VegaData,
   Legend as VegaLegend,
   Mark as VegaMark,
+  Scale as VegaScale,
   Signal as VegaSignal,
   Spec as VegaSpec,
+  Transforms,
 } from "vega";
 import { Handler as TooltipHandler } from "vega-tooltip";
 import { defaultSetting } from "@unit-vis/core";
 
-import type { DataRow, Labels, Legend, Mark, Spec } from "@unit-vis/core";
+import type {
+  DataRow,
+  Labels,
+  Legend,
+  Mark,
+  MarkContent,
+  Spec,
+} from "@unit-vis/core";
 import { ROWS_BY_ID, buildLayoutData, levelName } from "./layout.js";
 
 /**
@@ -26,7 +35,8 @@ import { ROWS_BY_ID, buildLayoutData, levelName } from "./layout.js";
  *   - unit marks are the deepest level, one per container that holds rows,
  *   - `joinaggregate` implements the shared mark-size policy,
  *   - signals carry the mark policy, so shape/size/color are encoding-time
- *     decisions rather than spec-construction-time branches.
+ *     decisions rather than spec-construction-time branches -- including what
+ *     the emoji/text/path/image shapes draw, which rides on a signal too.
  *
  * The upshot is that the emitted spec is the whole chart: it serializes, it
  * re-runs incrementally when a signal changes, and a transform inserted ahead of
@@ -105,12 +115,276 @@ function resolveLegend(spec: Spec): ResolvedLegend | null {
   };
 }
 
+/**
+ * The shapes that have to be told what to draw, each named by the `mark` field
+ * that tells them: `mark.emoji`, `mark.text`, `mark.path`, `mark.image`.
+ * `circle` and `rect` need no content and are always available.
+ */
+const CONTENT_CHANNELS = ["emoji", "text", "path", "image"] as const;
+type ContentChannel = (typeof CONTENT_CHANNELS)[number];
+
+/** The field on a unit that a channel reads off the row, before any scale. */
+const valueField = (channel: ContentChannel): string => `${channel}Value`;
+/** The field on a unit that a channel's resolved content lands in. */
+const contentField = (channel: ContentChannel): string => `${channel}Content`;
+/** The signal carrying the channel's `key`, literal value, and default. */
+const contentSignal = (channel: ContentChannel): string => `${channel}Spec`;
+/** The signals carrying the two halves of the channel's scale. */
+const domainSignal = (channel: ContentChannel): string => `${channel}Domain`;
+const rangeSignal = (channel: ContentChannel): string => `${channel}Range`;
+/** The scale that pairs the channel's domain with its range. */
+const channelScale = (channel: ContentChannel): string => `${channel}Scale`;
+/** The units the channel's mark draws from. */
+const channelUnits = (channel: ContentChannel): string => `${channel}Units`;
+/**
+ * The mark itself. `test/harness/svg-model.ts` reads a mark's role off this
+ * name, so renaming one means updating `UNIT_MARK_NAMES` there.
+ */
+const channelMark = (channel: ContentChannel): string =>
+  `unit${channel[0].toUpperCase()}${channel.slice(1)}Marks`;
+
+/** Whether `mark.<channel>` says anything about what to draw. */
+function hasContent(content: MarkContent | undefined): boolean {
+  return typeof content === "string"
+    ? content.length > 0
+    : Boolean(content && content.key);
+}
+
+/**
+ * The channels this spec configured.
+ *
+ * A shape whose channel is empty has nothing to draw, so its mark is left out
+ * of the compiled spec and `markShape` falls through to circles — which is also
+ * what a spec written before these shapes existed compiles to, unchanged.
+ */
+function contentChannels(mark: Partial<Mark>): ContentChannel[] {
+  return CONTENT_CHANNELS.filter((channel) => hasContent(mark[channel]));
+}
+
+/** The object form of a channel's content, or null for a literal. */
+function scaled(content: MarkContent): Exclude<MarkContent, string> | null {
+  return typeof content === "string" ? null : content;
+}
+
+/** Whether the channel pairs the field's values with something else to draw. */
+function hasRange(content: MarkContent): boolean {
+  const object = scaled(content);
+  return Boolean(object && object.range && object.range.length);
+}
+
+/**
+ * The channel's configuration, as signals.
+ *
+ * All of it rides on signals rather than being baked into expressions and scale
+ * definitions, so a live view can be re-pointed at a different field or handed
+ * a different set of emoji without the spec being rebuilt.
+ */
+function contentSignals(channel: ContentChannel, content: MarkContent): VegaSignal[] {
+  const object = scaled(content);
+  return [
+    {
+      name: contentSignal(channel),
+      value: {
+        key: object ? object.key : null,
+        value: object ? null : content,
+        default: object && object.default != null ? object.default : null,
+      },
+    },
+    // A domain with nothing to pair it with is not a scale, so both halves are
+    // carried only when there is a range.
+    ...(hasRange(content)
+      ? [
+          { name: domainSignal(channel), value: object!.domain ?? null },
+          { name: rangeSignal(channel), value: object!.range },
+        ]
+      : []),
+  ];
+}
+
+/** What the channel reads off one row, before its scale gets a say. */
+function valueExpr(channel: ContentChannel): string {
+  const signal = contentSignal(channel);
+  return `isValid(${signal}.key) ? toString(datum.row[${signal}.key]) : ${signal}.value`;
+}
+
+/**
+ * What one unit actually draws: the value it read, run through the channel's
+ * scale where it has one.
+ *
+ * A value the domain does not list is drawn with `default` rather than being
+ * folded into the scale, which is the one place this parts company with an
+ * ordinal scale -- vega would hand an unlisted value a range entry of its own.
+ */
+function contentExpr(channel: ContentChannel, content: MarkContent): string {
+  const value = `datum.${valueField(channel)}`;
+  if (!hasRange(content)) {
+    return value;
+  }
+  const domain = domainSignal(channel);
+  return (
+    `isValid(${domain}) && indexof(${domain}, ${value}) < 0` +
+    ` ? ${contentSignal(channel)}.default` +
+    ` : scale('${channelScale(channel)}', ${value})`
+  );
+}
+
+/**
+ * The scale itself, when the channel has a range to pair its values with.
+ *
+ * With no domain of its own it reads one off the units, in the order the values
+ * first appear -- which is what an ordinal scale does, and the same order the
+ * color scale reads its own domain in.
+ */
+function buildContentScale(channel: ContentChannel, content: MarkContent): VegaScale {
+  const object = scaled(content)!;
+  return {
+    name: channelScale(channel),
+    type: "ordinal",
+    domain: object.domain
+      ? { signal: domainSignal(channel) }
+      : { data: "units", field: valueField(channel) },
+    range: { signal: rangeSignal(channel) },
+  } as VegaScale;
+}
+
+/**
+ * How the two channels drawn as text arrive at a type size, when `mark.fontSize`
+ * does not simply say. Both are measured against the container, so a denser
+ * layout writes smaller.
+ */
+const FONT_SIZE: { [channel in ContentChannel]?: Transforms[] } = {
+  // A glyph is about one em tall, so an emoji set to the container's inscribed
+  // diameter fills it the way a circle mark does -- and `datum.radius` has
+  // already been through the shared-size policy, so this follows it.
+  emoji: [
+    {
+      type: "formula",
+      as: "fontSize",
+      expr: "isValid(markFontSize) ? markFontSize : 2 * datum.radius",
+    },
+  ],
+  // Text has to fit across as well as down, and the room it has across is the
+  // container's own width rather than the square the other shapes are drawn in.
+  // 0.6em is a serviceable stand-in for the average advance width of a
+  // sans-serif glyph, so this is the largest size at which the string is still
+  // expected to sit inside its container.
+  text: [
+    {
+      type: "formula",
+      as: "__fit",
+      expr:
+        `!isValid(datum.${contentField("text")}) ? null` +
+        ` : min(2 * datum.radius, datum.width / (0.6 * max(1, length('' + datum.${contentField("text")}))))`,
+    },
+    // That width is per container, so unlike `datum.radius` it has not been
+    // through the size policy yet. A shared policy is a min across the chart
+    // here exactly as it is there: one type size, the one that fits everywhere.
+    {
+      type: "joinaggregate",
+      fields: ["__fit"],
+      ops: ["min"],
+      as: ["__sharedFit"],
+    },
+    {
+      type: "formula",
+      as: "fontSize",
+      expr:
+        "isValid(markFontSize) ? markFontSize" +
+        " : markSizeShared ? datum.__sharedFit : datum.__fit",
+    },
+  ],
+};
+
+/**
+ * The mark each channel is drawn with, past the position and the tooltip every
+ * one of them shares.
+ *
+ * All four are centered on their container and sized off `datum.radius`, the
+ * same field the circle mark reads — so `mark.size` governs them all, and
+ * switching `markShape` between them moves nothing but the shape.
+ */
+const CONTENT_ENCODINGS: {
+  [channel in ContentChannel]: {
+    type: string;
+    update: Record<string, unknown>;
+  };
+} = {
+  // No fill: an emoji carries its own colors, and painting over them would only
+  // show up on the platforms whose emoji font is monochrome.
+  emoji: {
+    type: "text",
+    update: {
+      text: { field: contentField("emoji") },
+      fontSize: { field: "fontSize" },
+      align: { value: "center" },
+      baseline: { value: "middle" },
+      // Vega's default font is whatever the platform calls `sans-serif`, which
+      // on a machine whose sans-serif has no emoji coverage draws every glyph
+      // as a missing-character box. Name the emoji fonts ahead of it.
+      font: {
+        value: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif',
+      },
+    },
+  },
+  text: {
+    type: "text",
+    update: {
+      text: { field: contentField("text") },
+      fontSize: { field: "fontSize" },
+      align: { value: "center" },
+      baseline: { value: "middle" },
+      fill: { scale: "colorScale", field: "color" },
+    },
+  },
+  // Vega draws a custom symbol path scaled by `sqrt(size) / 2`, so a path drawn
+  // in the box from (-1, -1) to (1, 1) comes out exactly `2 * radius` across.
+  path: {
+    type: "symbol",
+    update: {
+      shape: { field: contentField("path") },
+      size: { signal: "pow(2 * datum.radius, 2)" },
+      fill: { scale: "colorScale", field: "color" },
+    },
+  },
+  // Both dimensions are given, so vega never has to load the picture to size it
+  // -- and `preserveAspectRatio` then fits it inside that square rather than
+  // stretching it.
+  image: {
+    type: "image",
+    update: {
+      url: { field: contentField("image") },
+      width: { signal: "2 * datum.radius" },
+      height: { signal: "2 * datum.radius" },
+      align: { value: "center" },
+      baseline: { value: "middle" },
+    },
+  },
+};
+
+function buildContentMark(channel: ContentChannel): VegaMark {
+  const { type, update } = CONTENT_ENCODINGS[channel];
+  return {
+    name: channelMark(channel),
+    type,
+    from: { data: channelUnits(channel) },
+    encode: {
+      update: {
+        x: { scale: "xscale", field: "cx" },
+        y: { scale: "yscale", field: "cy" },
+        tooltip: { signal: "datum.row" },
+        ...update,
+      },
+    },
+  } as VegaMark;
+}
+
 function buildData(
   spec: Spec,
   rows: DataRow[],
   labels: ResolvedLabels | null,
 ): VegaData[] {
   const numLayouts = spec.layouts.length;
+  const channels = contentChannels(spec.mark ?? {});
 
   // The layout itself: one stage per level of `spec.layouts`, ending in a
   // `level${d}` dataset of containers per level.
@@ -209,6 +483,16 @@ function buildData(
         as: "color",
         expr: 'isValid(colorKey) ? datum.row[colorKey] : ""',
       },
+      // What each of the told-what-to-draw shapes reads off the row, for every
+      // unit rather than only for the shape in play -- so `markShape` can be
+      // flipped between the shapes the spec configured after the fact. This is
+      // also what a channel's scale reads its domain off, so it stays here
+      // rather than moving downstream with the content it resolves to.
+      ...channels.map((channel) => ({
+        type: "formula" as const,
+        as: valueField(channel),
+        expr: valueExpr(channel),
+      })),
       {
         type: "formula",
         as: "isolatedRadius",
@@ -242,6 +526,9 @@ function buildData(
 
   // Shape selection is a filter over a signal rather than a JS branch, so
   // flipping `markShape` reshapes the chart without rebuilding the spec.
+  // Circles are the fallback: a shape with no mark of its own -- one the spec
+  // gave no content, or one nobody has heard of -- lands here.
+  const claimed = ["rect", ...channels];
   data.push(
     {
       name: "rectUnits",
@@ -251,8 +538,31 @@ function buildData(
     {
       name: "circleUnits",
       source: "units",
-      transform: [{ type: "filter", expr: "markShape !== 'rect'" }],
+      transform: [
+        {
+          type: "filter",
+          expr: `indexof([${claimed.map((shape) => `'${shape}'`).join(", ")}], markShape) < 0`,
+        },
+      ],
     },
+    ...channels.map((channel) => ({
+      name: channelUnits(channel),
+      source: "units",
+      transform: [
+        { type: "filter" as const, expr: `markShape === '${channel}'` },
+        // Downstream of `units` rather than in it, because a channel's scale
+        // reads its domain off `units` -- resolving the content there would
+        // have the dataset depending on a scale that depends on it.
+        {
+          type: "formula" as const,
+          as: contentField(channel),
+          expr: contentExpr(channel, spec.mark![channel]!),
+        },
+        // After the content, so text is fitted to the string it will draw
+        // rather than to the value it was mapped from.
+        ...(FONT_SIZE[channel] ?? []),
+      ],
+    })),
   );
 
   return data;
@@ -261,6 +571,16 @@ function buildData(
 function buildSignals(spec: Spec, labels: ResolvedLabels | null): VegaSignal[] {
   // `applyDefault` normally fills this in, but the type allows it to be absent.
   const mark: Partial<Mark> = spec.mark ?? {};
+  const channels = contentChannels(mark);
+  // What each configured shape draws, and the type size the two textual ones
+  // are drawn at. Both are signals so that a live view can be re-pointed at a
+  // different field or a different size without recompiling.
+  const markSignals: VegaSignal[] = [
+    ...channels.flatMap((channel) => contentSignals(channel, mark[channel]!)),
+    ...(channels.some((channel) => FONT_SIZE[channel])
+      ? [{ name: "markFontSize", value: mark.fontSize ?? null }]
+      : []),
+  ];
   const labelSignals: VegaSignal[] = labels
     ? [
         { name: "labelOrient", value: labels.orient },
@@ -271,6 +591,7 @@ function buildSignals(spec: Spec, labels: ResolvedLabels | null): VegaSignal[] {
     : [];
   return [
     ...labelSignals,
+    ...markSignals,
     { name: "boxDefaults", value: defaultSetting.layout.box },
     { name: "markShape", value: mark.shape || "circle" },
     { name: "markSizeType", value: (mark.size && mark.size.type) || "max" },
@@ -410,6 +731,12 @@ export function buildVegaSpec(spec: Spec, rows: DataRow[]): VegaSpec {
         domain: { data: "units", field: "color" },
         range: { scheme: { signal: "colorScheme" } },
       },
+      // One per shape whose content is a range rather than a literal or the
+      // field's own value. Same kind of scale the colors go through, over the
+      // same units, so an emoji and a color assign themselves alike.
+      ...contentChannels(spec.mark ?? {})
+        .filter((channel) => hasRange(spec.mark![channel]!))
+        .map((channel) => buildContentScale(channel, spec.mark![channel]!)),
     ],
     marks: [
       {
@@ -460,6 +787,9 @@ export function buildVegaSpec(spec: Spec, rows: DataRow[]): VegaSpec {
           },
         },
       },
+      // One per shape the spec said what to draw for. Only the one `markShape`
+      // names has any units in it at a time.
+      ...contentChannels(spec.mark ?? {}).map(buildContentMark),
       // Last, so the text sits over the units rather than under them.
       ...(labels ? [buildLabelMark()] : []),
     ] as VegaMark[],

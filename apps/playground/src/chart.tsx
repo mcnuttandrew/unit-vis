@@ -41,14 +41,26 @@ export default function Chart(props: Props) {
 
   return (
     <div className="flex-down chart-container">
-      <div className="flex-down">
-        <span>d3 backend (unit-vis)</span>
-        <div id="d3-target" ref={d3Target} />
-      </div>
-      <div className="flex-down">
-        <span>vega backend (unit-vis-vega)</span>
-        <div id="vega-target" ref={vegaTarget} />
-      </div>
+      <section className="backend-card">
+        <header className="backend-card__header">
+          <span className="label">d3 backend</span>
+          <span className="backend-card__pkg">unit-vis</span>
+        </header>
+        <div className="backend-card__body">
+          {!spec && <p className="empty-note">waiting on a spec that parses</p>}
+          <div id="d3-target" ref={d3Target} />
+        </div>
+      </section>
+      <section className="backend-card">
+        <header className="backend-card__header">
+          <span className="label">vega backend</span>
+          <span className="backend-card__pkg">unit-vis-vega</span>
+        </header>
+        <div className="backend-card__body">
+          {!spec && <p className="empty-note">waiting on a spec that parses</p>}
+          <div id="vega-target" ref={vegaTarget} />
+        </div>
+      </section>
     </div>
   );
 }

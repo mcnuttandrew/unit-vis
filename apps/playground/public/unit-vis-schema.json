@@ -50,6 +50,41 @@
       ],
       "type": "string"
     },
+    "MarkContent": {
+      "description": "What a mark draws, for the shapes that need to be told: the glyph of an\n`emoji` mark, the outline of a `path` mark, the string of a `text` mark, the\nsource of an `image` mark.\n\nA plain string is that content, the same on every unit. An object reads it\noff the row instead, and `domain`/`range` make that read a scale — the same\npair, with the same meaning, that a vega scale takes:\n\n- `{key}` alone draws the field's own value, which is what a `text` mark\n  usually wants: one row, its own label.\n- `{key, range}` draws the range instead, handing its entries out to the\n  field's values in first-seen order and repeating when it runs short.\n- `{key, domain, range}` pairs the two by position, so a value is drawn with\n  whatever sits at the same index of `range`:\n  `{\"key\": \"species\", \"domain\": [\"Adelie\", \"Gentoo\"], \"range\": [\"🐧\", \"🐦\"]}`.\n- `default` covers a value the `domain` does not list. Without one, such a\n  row draws nothing.\n\nVega backend only.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "description": "The data field to read.",
+              "type": "string"
+            },
+            "domain": {
+              "description": "The values of `key` that `range` pairs with, in order.\n\nLeave it out and the values are taken in the order they first appear,\nexactly as a vega scale builds its own domain. Only read alongside\n`range` — there is nothing to pair a domain with otherwise.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "range": {
+              "description": "What to draw, one entry per entry of `domain`.\n\nShorter than the domain and it repeats, the way an ordinal scale's\nrange does. Leave it out and the field's own value is drawn.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "default": {
+              "description": "Content for a row whose value `domain` does not list. Only meaningful\nalongside an explicit `domain`: without one every value is inside the\ndomain by construction.",
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
     "Mark": {
       "description": "How each data row is drawn once the layouts have decided where it goes.\n\nThe layouts own position and space; the mark owns shape, size within that\nspace, and color. One mark is drawn per row, in the deepest container that\nrow lands in.",
       "type": "object",
@@ -79,7 +114,7 @@
           }
         },
         "size": {
-          "description": "How large the mark is drawn inside its container. Only affects `circle`\nmarks — a `rect` mark always fills its container exactly.",
+          "description": "How large the mark is drawn inside its container. Read by every shape but\n`rect`, which always fills its container exactly.",
           "type": "object",
           "properties": {
             "isShared": {
@@ -95,13 +130,37 @@
           }
         },
         "shape": {
-          "description": "The shape drawn per row.\n\n- `circle` — inscribed in its container, sized by `mark.size`\n- `rect` — fills its container exactly, ignoring `mark.size`",
+          "description": "The shape drawn per row.\n\n- `circle` — inscribed in its container, sized by `mark.size`\n- `rect` — fills its container exactly, ignoring `mark.size`\n\nThe rest are drawn by the vega backend only, and each is told what to draw\nby the `mark` field of the same name. Set the shape without setting that\nfield and there is nothing to draw, so the marks fall back to circles.\nAll four sit in the same box a `circle` would take — centered on the\ncontainer and sized by `mark.size` — so switching between them moves\nnothing but the shape.\n\n- `emoji` — the glyph named by `mark.emoji`, drawn as text one container\n  across. Keeps the font's own colors rather than taking `mark.color`.\n- `text` — the string named by `mark.text`, shrunk to fit its container\n  unless `mark.fontSize` says otherwise.\n- `path` — the outline named by `mark.path`, an SVG path drawn in the box\n  from (-1, -1) to (1, 1) and scaled to the container.\n- `image` — the picture named by `mark.image`, fit inside the container\n  with its aspect ratio kept.",
           "default": "circle",
           "enum": [
             "circle",
-            "rect"
+            "emoji",
+            "image",
+            "path",
+            "rect",
+            "text"
           ],
           "type": "string"
+        },
+        "emoji": {
+          "$ref": "#/definitions/MarkContent",
+          "description": "The glyph a `shape: \"emoji\"` mark draws — `\"🐧\"` for the same one\neverywhere, or `{\"key\": \"species\", \"range\": [...]}` for one per category.\n\nVega backend only."
+        },
+        "text": {
+          "$ref": "#/definitions/MarkContent",
+          "description": "The string a `shape: \"text\"` mark draws. Usually `{\"key\": \"name\"}`, i.e.\neach unit labelled with its own value of a field.\n\nText is set at whatever size keeps it inside its container, which is a\nper-string, per-container decision — so turn on `mark.size.isShared` to\nhave every string set at one size, the one that fits everywhere.\n\nVega backend only."
+        },
+        "path": {
+          "$ref": "#/definitions/MarkContent",
+          "description": "The outline a `shape: \"path\"` mark draws, as an SVG path string.\n\nThe path is read in a square box running from (-1, -1) to (1, 1) with the\norigin at the mark's center, and scaled so that box is the container's\ninscribed square. `\"M0,-1L1,1L-1,1Z\"` is a triangle filling the container.\nTakes `mark.color` like a circle does.\n\nVega backend only."
+        },
+        "image": {
+          "$ref": "#/definitions/MarkContent",
+          "description": "The picture a `shape: \"image\"` mark draws, as a url or a data uri. The\nimage is fit inside the container's inscribed square with its aspect ratio\nkept, so a non-square picture is letterboxed rather than stretched.\n\nVega backend only."
+        },
+        "fontSize": {
+          "description": "Type size in pixels for `emoji` and `text` marks.\n\nLeft unset, an emoji is drawn one container across and text is shrunk to\nwhatever size keeps the string inside its container. Set it and the marks\nare drawn at that size whatever their container, which is what makes a\nchart of text legible at the cost of letting long strings overlap.\n\nVega backend only.",
+          "type": "number"
         },
         "isColorScaleShared": {
           "description": "Reserved. Present in most bundled example specs and in the library\ndefaults, but read by neither backend.",
@@ -242,7 +301,7 @@
               }
             },
             "size": {
-              "description": "How large the mark is drawn inside its container. Only affects `circle`\nmarks — a `rect` mark always fills its container exactly.",
+              "description": "How large the mark is drawn inside its container. Read by every shape but\n`rect`, which always fills its container exactly.",
               "type": "object",
               "properties": {
                 "isShared": {
@@ -258,13 +317,37 @@
               }
             },
             "shape": {
-              "description": "The shape drawn per row.\n\n- `circle` — inscribed in its container, sized by `mark.size`\n- `rect` — fills its container exactly, ignoring `mark.size`",
+              "description": "The shape drawn per row.\n\n- `circle` — inscribed in its container, sized by `mark.size`\n- `rect` — fills its container exactly, ignoring `mark.size`\n\nThe rest are drawn by the vega backend only, and each is told what to draw\nby the `mark` field of the same name. Set the shape without setting that\nfield and there is nothing to draw, so the marks fall back to circles.\nAll four sit in the same box a `circle` would take — centered on the\ncontainer and sized by `mark.size` — so switching between them moves\nnothing but the shape.\n\n- `emoji` — the glyph named by `mark.emoji`, drawn as text one container\n  across. Keeps the font's own colors rather than taking `mark.color`.\n- `text` — the string named by `mark.text`, shrunk to fit its container\n  unless `mark.fontSize` says otherwise.\n- `path` — the outline named by `mark.path`, an SVG path drawn in the box\n  from (-1, -1) to (1, 1) and scaled to the container.\n- `image` — the picture named by `mark.image`, fit inside the container\n  with its aspect ratio kept.",
               "default": "circle",
               "enum": [
                 "circle",
-                "rect"
+                "emoji",
+                "image",
+                "path",
+                "rect",
+                "text"
               ],
               "type": "string"
+            },
+            "emoji": {
+              "$ref": "#/definitions/MarkContent",
+              "description": "The glyph a `shape: \"emoji\"` mark draws — `\"🐧\"` for the same one\neverywhere, or `{\"key\": \"species\", \"range\": [...]}` for one per category.\n\nVega backend only."
+            },
+            "text": {
+              "$ref": "#/definitions/MarkContent",
+              "description": "The string a `shape: \"text\"` mark draws. Usually `{\"key\": \"name\"}`, i.e.\neach unit labelled with its own value of a field.\n\nText is set at whatever size keeps it inside its container, which is a\nper-string, per-container decision — so turn on `mark.size.isShared` to\nhave every string set at one size, the one that fits everywhere.\n\nVega backend only."
+            },
+            "path": {
+              "$ref": "#/definitions/MarkContent",
+              "description": "The outline a `shape: \"path\"` mark draws, as an SVG path string.\n\nThe path is read in a square box running from (-1, -1) to (1, 1) with the\norigin at the mark's center, and scaled so that box is the container's\ninscribed square. `\"M0,-1L1,1L-1,1Z\"` is a triangle filling the container.\nTakes `mark.color` like a circle does.\n\nVega backend only."
+            },
+            "image": {
+              "$ref": "#/definitions/MarkContent",
+              "description": "The picture a `shape: \"image\"` mark draws, as a url or a data uri. The\nimage is fit inside the container's inscribed square with its aspect ratio\nkept, so a non-square picture is letterboxed rather than stretched.\n\nVega backend only."
+            },
+            "fontSize": {
+              "description": "Type size in pixels for `emoji` and `text` marks.\n\nLeft unset, an emoji is drawn one container across and text is shrunk to\nwhatever size keeps the string inside its container. Set it and the marks\nare drawn at that size whatever their container, which is what makes a\nchart of text legible at the cost of letting long strings overlap.\n\nVega backend only.",
+              "type": "number"
             },
             "isColorScaleShared": {
               "description": "Reserved. Present in most bundled example specs and in the library\ndefaults, but read by neither backend.",
